@@ -1,26 +1,27 @@
 (function () {
-  'use strict';
+  "use strict";
 
-  const STORAGE_KEY = 'proteinDrinkTracker';
-  const THEME_KEY = 'proteinTheme';
-  const LANG_KEY = 'proteinTrackerLang';
-  const REMINDER_KEY = 'proteinReminder';
+  const STORAGE_KEY = "proteinDrinkTracker";
+  const THEME_KEY = "proteinTheme";
+  const LANG_KEY = "proteinTrackerLang";
+  const REMINDER_KEY = "proteinReminder";
   const RESET_HOUR = 2; // 2am local
   const HISTORY_MAX_DAYS = 365;
 
   const WORLD_CITIES = [
-    { name: 'New York', timeZone: 'America/New_York' },
-    { name: 'London', timeZone: 'Europe/London' },
-    { name: 'İstanbul', timeZone: 'Europe/Istanbul' },
-    { name: 'Tokyo', timeZone: 'Asia/Tokyo' },
-    { name: 'Sydney', timeZone: 'Australia/Sydney' }
+    { name: "New York", timeZone: "America/New_York" },
+    { name: "London", timeZone: "Europe/London" },
+    { name: "İstanbul", timeZone: "Europe/Istanbul" },
+    { name: "Tokyo", timeZone: "Asia/Tokyo" },
+    { name: "Sydney", timeZone: "Australia/Sydney" },
+    { name: "Santo Domingo", timeZone: "America/Santo_Domingo" },
   ];
 
   /* --- Location Variables --- */
-  let userLocation = { city: 'Local Time', timeZone: undefined };
+  let userLocation = { city: "Local Time", timeZone: undefined };
 
   // Get preferred language (default: en)
-  let currentLang = localStorage.getItem(LANG_KEY) || 'en';
+  let currentLang = localStorage.getItem(LANG_KEY) || "en";
 
   /**
    * App "day" = from 2:00 AM to 1:59 AM next calendar day (local).
@@ -34,13 +35,13 @@
       date.setDate(date.getDate() - 1);
     }
     const y = date.getFullYear();
-    const m = String(date.getMonth() + 1).padStart(2, '0');
-    const d = String(date.getDate()).padStart(2, '0');
-    return y + '-' + m + '-' + d;
+    const m = String(date.getMonth() + 1).padStart(2, "0");
+    const d = String(date.getDate()).padStart(2, "0");
+    return y + "-" + m + "-" + d;
   }
 
   function parseDateKey(key) {
-    const [y, m, d] = key.split('-').map(Number);
+    const [y, m, d] = key.split("-").map(Number);
     return new Date(y, m - 1, d);
   }
 
@@ -65,12 +66,14 @@
         };
       const data = JSON.parse(raw);
       const history = Array.isArray(data.history) ? data.history : [];
-      const drinkTimestamps = Array.isArray(data.drinkTimestamps) ? data.drinkTimestamps : [];
+      const drinkTimestamps = Array.isArray(data.drinkTimestamps)
+        ? data.drinkTimestamps
+        : [];
       return {
         dateKey: data.dateKey || null,
         drank: Boolean(data.drank),
         drinkTimestamps: drinkTimestamps,
-        history: history
+        history: history,
       };
     } catch (_) {
       return { dateKey: null, drank: false, drinkTimestamps: [], history: [] };
@@ -82,9 +85,9 @@
       const trimmed = (history || []).slice(-HISTORY_MAX_DAYS);
       localStorage.setItem(
         STORAGE_KEY,
-        JSON.stringify({ dateKey, drank, drinkTimestamps, history: trimmed })
+        JSON.stringify({ dateKey, drank, drinkTimestamps, history: trimmed }),
       );
-    } catch (_) { }
+    } catch (_) {}
   }
 
   function getCurrentDrank() {
@@ -123,11 +126,19 @@
 
     if (drank) {
       if (!history.includes(dateKey)) history = history.concat([dateKey]);
-      drinkTimestamps = drinkTimestamps.filter(function (ts) { return ts.date !== dateKey; });
-      drinkTimestamps = drinkTimestamps.concat([{ date: dateKey, time: new Date().toLocaleTimeString() }]);
+      drinkTimestamps = drinkTimestamps.filter(function (ts) {
+        return ts.date !== dateKey;
+      });
+      drinkTimestamps = drinkTimestamps.concat([
+        { date: dateKey, time: new Date().toLocaleTimeString() },
+      ]);
     } else {
-      history = history.filter(function (k) { return k !== dateKey; });
-      drinkTimestamps = drinkTimestamps.filter(function (ts) { return ts.date !== dateKey; });
+      history = history.filter(function (k) {
+        return k !== dateKey;
+      });
+      drinkTimestamps = drinkTimestamps.filter(function (ts) {
+        return ts.date !== dateKey;
+      });
     }
 
     saveState(dateKey, drank, history, drinkTimestamps);
@@ -143,9 +154,9 @@
     let d = new Date(today);
     while (true) {
       const y = d.getFullYear();
-      const m = String(d.getMonth() + 1).padStart(2, '0');
-      const day = String(d.getDate()).padStart(2, '0');
-      const key = y + '-' + m + '-' + day;
+      const m = String(d.getMonth() + 1).padStart(2, "0");
+      const day = String(d.getDate()).padStart(2, "0");
+      const key = y + "-" + m + "-" + day;
       if (!drankSet.has(key)) break;
       streak++;
       d.setDate(d.getDate() - 1);
@@ -162,26 +173,33 @@
   /* 🔔 Notification reminder initialization */
   function initReminder() {
     if (!localStorage.getItem(REMINDER_KEY)) {
-      localStorage.setItem(REMINDER_KEY, JSON.stringify({
+      localStorage.setItem(
+        REMINDER_KEY,
+        JSON.stringify({
           enabled: true,
-        time: '09:00',
-        lastNotified: null
-      }));
+          time: "09:00",
+          lastNotified: null,
+        }),
+      );
     }
 
-    if ('Notification' in window && Notification.permission === 'default') {
-      Notification.requestPermission().then(function(permission) {
-        if (permission === 'granted' && navigator.serviceWorker.controller) {
+    if ("Notification" in window && Notification.permission === "default") {
+      Notification.requestPermission().then(function (permission) {
+        if (permission === "granted" && navigator.serviceWorker.controller) {
           navigator.serviceWorker.controller.postMessage({
-            type: 'SET_REMINDER',
-            settings: JSON.parse(localStorage.getItem(REMINDER_KEY))
+            type: "SET_REMINDER",
+            settings: JSON.parse(localStorage.getItem(REMINDER_KEY)),
           });
         }
       });
-    } else if ('Notification' in window && Notification.permission === 'granted' && navigator.serviceWorker.controller) {
+    } else if (
+      "Notification" in window &&
+      Notification.permission === "granted" &&
+      navigator.serviceWorker.controller
+    ) {
       navigator.serviceWorker.controller.postMessage({
-        type: 'SET_REMINDER',
-        settings: JSON.parse(localStorage.getItem(REMINDER_KEY))
+        type: "SET_REMINDER",
+        settings: JSON.parse(localStorage.getItem(REMINDER_KEY)),
       });
     }
   }
@@ -190,33 +208,33 @@
   async function fetchCityName(lat, lon) {
     try {
       const res = await fetch(
-        `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lon}&localityLanguage=en`
+        `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lon}&localityLanguage=en`,
       );
-      if (!res.ok) throw new Error('HTTP Error ' + res.status);
+      if (!res.ok) throw new Error("HTTP Error " + res.status);
       const data = await res.json();
-      return data.city || data.locality || 'Location Found';
+      return data.city || data.locality || "Location Found";
     } catch (e) {
-      console.error('City fetch failed', e);
-      return 'Local Time';
+      console.error("City fetch failed", e);
+      return "Local Time";
     }
   }
 
   function initLocation() {
-    if ('geolocation' in navigator) {
+    if ("geolocation" in navigator) {
       navigator.geolocation.getCurrentPosition(async (pos) => {
-          const { latitude, longitude } = pos.coords;
-          userLocation.city = await fetchCityName(latitude, longitude);
-        const el = document.getElementById('main-clock-label');
-        if (el) el.textContent = 'Time in ' + userLocation.city;
+        const { latitude, longitude } = pos.coords;
+        userLocation.city = await fetchCityName(latitude, longitude);
+        const el = document.getElementById("main-clock-label");
+        if (el) el.textContent = "Time in " + userLocation.city;
       });
     }
   }
 
   /* --- Clock Functions --- */
   function initWorldClocks() {
-    const container = document.getElementById('world-clocks');
+    const container = document.getElementById("world-clocks");
     if (container) {
-      let html = '';
+      let html = "";
       WORLD_CITIES.forEach((city, index) => {
         html += `
           <div class="world-clock-item">
@@ -231,22 +249,22 @@
 
   function updateClock() {
     const now = new Date();
-    const timeEl = document.getElementById('clock-time');
-    const secEl = document.getElementById('clock-seconds');
+    const timeEl = document.getElementById("clock-time");
+    const secEl = document.getElementById("clock-seconds");
 
     if (timeEl && secEl) {
-      timeEl.textContent = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-      secEl.textContent = String(now.getSeconds()).padStart(2, '0');
+      timeEl.textContent = `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
+      secEl.textContent = String(now.getSeconds()).padStart(2, "0");
     }
 
     WORLD_CITIES.forEach((city, index) => {
       const el = document.getElementById(`world-clock-time-${index}`);
       if (el) {
-        el.textContent = now.toLocaleTimeString('en-US', {
+        el.textContent = now.toLocaleTimeString("en-US", {
           timeZone: city.timeZone,
-          hour: '2-digit',
-          minute: '2-digit',
-          hour12: false
+          hour: "2-digit",
+          minute: "2-digit",
+          hour12: false,
         });
       }
     });
@@ -256,18 +274,24 @@
   function loadTheme() {
     const saved = localStorage.getItem(THEME_KEY);
     if (saved) return saved;
-    return window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+    return window.matchMedia("(prefers-color-scheme: light)").matches
+      ? "light"
+      : "dark";
   }
 
   function setTheme(theme) {
-    document.documentElement.setAttribute('data-theme', theme);
+    document.documentElement.setAttribute("data-theme", theme);
     localStorage.setItem(THEME_KEY, theme);
-    const btn = document.getElementById('theme-toggle');
-    if (btn) btn.textContent = theme === 'light' ? '☀️' : '🌙';
+    const btn = document.getElementById("theme-toggle");
+    if (btn) btn.textContent = theme === "light" ? "☀️" : "🌙";
   }
 
   function toggleTheme() {
-    setTheme(document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark');
+    setTheme(
+      document.documentElement.getAttribute("data-theme") === "dark"
+        ? "light"
+        : "dark",
+    );
   }
 
   /**
@@ -277,23 +301,23 @@
    */
   function getDailyQuote(texts) {
     const todayKey = getDateKey();
-    const storageKey = 'proteinDailyQuote';
+    const storageKey = "proteinDailyQuote";
     const storedData = localStorage.getItem(storageKey);
-    
+
     let index;
 
     if (storedData && storedData.startsWith(todayKey)) {
-        index = parseInt(storedData.split('-')[1]);
+      index = parseInt(storedData.split("-")[1]);
     } else {
-        index = Math.floor(Math.random() * texts.motivationalQuotes.length);
-        localStorage.setItem(storageKey, `${todayKey}-${index}`);
+      index = Math.floor(Math.random() * texts.motivationalQuotes.length);
+      localStorage.setItem(storageKey, `${todayKey}-${index}`);
     }
 
     return texts.motivationalQuotes[index] || texts.motivationalQuotes[0];
   }
 
   /**
-   * --- UI Functions --- 
+   * --- UI Functions ---
    * Updates the entire UI based on the current drank state and language
    * is called multiple times:
    * - when language is changed
@@ -302,30 +326,33 @@
   function updateUI(drank) {
     const dateKey = getDateKey();
     const stored = loadState();
-    const flexed = document.getElementById('arm-flexed');
-    const weak = document.getElementById('arm-weak');
-    const btn = document.getElementById('toggle-btn');
-    const status = document.getElementById('status-text');
-    const title = document.querySelector('.logo-text');
-    const dateEl = document.getElementById('date-text');
-    const streakEl = document.getElementById('streak-text');
-    const lastTimeEl = document.getElementById('last-time');
-    const mainClockLabel = document.getElementById('main-clock-label');
-    const proteinFoodListBtn = document.getElementById('protein-food-list-btn');
+    const flexed = document.getElementById("arm-flexed");
+    const weak = document.getElementById("arm-weak");
+    const btn = document.getElementById("toggle-btn");
+    const status = document.getElementById("status-text");
+    const title = document.querySelector(".logo-text");
+    const dateEl = document.getElementById("date-text");
+    const streakEl = document.getElementById("streak-text");
+    const lastTimeEl = document.getElementById("last-time");
+    const mainClockLabel = document.getElementById("main-clock-label");
+    const proteinFoodListBtn = document.getElementById("protein-food-list-btn");
     const texts = translations[currentLang];
 
     if (title) title.textContent = texts.title;
-    if (proteinFoodListBtn) proteinFoodListBtn.textContent = texts.proteinFoodListBtn;
-    if (flexed) flexed.classList.toggle('hidden', !drank);
-    if (weak) weak.classList.toggle('hidden', drank);
+    if (proteinFoodListBtn)
+      proteinFoodListBtn.textContent = texts.proteinFoodListBtn;
+    if (flexed) flexed.classList.toggle("hidden", !drank);
+    if (weak) weak.classList.toggle("hidden", drank);
     if (btn) btn.textContent = drank ? texts.btnDrankUndo : texts.btnDrank;
-    if (status) status.textContent = drank ? texts.statusDone : texts.statusNotDone;
+    if (status)
+      status.textContent = drank ? texts.statusDone : texts.statusNotDone;
     if (mainClockLabel) mainClockLabel.textContent = texts.localTime;
     if (dateEl) dateEl.textContent = formatDisplayDate(dateKey);
 
     if (streakEl) {
       const streak = getStreak();
-      streakEl.textContent = streak > 0 ? `${streak} ${texts.statusStreak}` : '';
+      streakEl.textContent =
+        streak > 0 ? `${streak} ${texts.statusStreak}` : "";
     }
 
     if (lastTimeEl) {
@@ -334,25 +361,25 @@
         const recent = timestamps[timestamps.length - 1];
         lastTimeEl.textContent = `${texts.lastDrankLabel} : ${recent.time}`;
       } else {
-        lastTimeEl.textContent = '';
+        lastTimeEl.textContent = "";
       }
     }
     updateHistoryLog();
 
     // Update motivational quote
-    const quoteEl = document.getElementById('motivational-quote');
+    const quoteEl = document.getElementById("motivational-quote");
     if (quoteEl) quoteEl.textContent = getDailyQuote(texts);
   }
 
   function updateHistoryLog() {
-    const logContainer = document.getElementById('history-log');
+    const logContainer = document.getElementById("history-log");
     if (!logContainer) return;
 
     const stored = loadState();
     const history = stored.history || [];
     const historySet = new Set(history);
     const todayKey = getDateKey();
-    let html = '';
+    let html = "";
 
     // Last 7 days including today
     for (let i = 6; i >= 0; i--) {
@@ -365,19 +392,19 @@
       d.setDate(d.getDate() - i);
 
       const y = d.getFullYear();
-      const m = String(d.getMonth() + 1).padStart(2, '0');
-      const day = String(d.getDate()).padStart(2, '0');
-      const key = y + '-' + m + '-' + day;
+      const m = String(d.getMonth() + 1).padStart(2, "0");
+      const day = String(d.getDate()).padStart(2, "0");
+      const key = y + "-" + m + "-" + day;
 
       const isToday = key === todayKey;
-      let status = '⚪';
+      let status = "⚪";
       if (historySet.has(key)) {
-        status = '✅';
+        status = "✅";
       } else if (isToday && getCurrentDrank()) {
-        status = '✅';
+        status = "✅";
       }
 
-      const dayName = d.toLocaleDateString(currentLang, { weekday: 'narrow' });
+      const dayName = d.toLocaleDateString(currentLang, { weekday: "narrow" });
 
       html += `
         <div class="history-day">
@@ -391,28 +418,28 @@
 
   function handleToggle() {
     const drank = toggleDrank();
-    updateUI(drank);  
+    updateUI(drank);
     navigator.vibrate?.(50);
     if (drank) {
-      console.log('[App] drank=true, attempting notification');
-      console.log('[App] SW Controller:', navigator.serviceWorker.controller);
+      console.log("[App] drank=true, attempting notification");
+      console.log("[App] SW Controller:", navigator.serviceWorker.controller);
       if (navigator.serviceWorker.controller) {
         navigator.serviceWorker.controller.postMessage({
-          type: 'SHOW_DRINK_NOTIFICATION',
-          title: '🥤 Protein Tracked!',
-          body: 'Great job! You\'ve logged your protein drink today.'
+          type: "SHOW_DRINK_NOTIFICATION",
+          title: "🥤 Protein Tracked!",
+          body: "Great job! You've logged your protein drink today.",
         });
-        console.log('[App] Message sent to SW');
-        showNotificationAlert('✅ Good Job.Keep Going..!');
+        console.log("[App] Message sent to SW");
+        showNotificationAlert("✅ Good Job.Keep Going..!");
       } else {
-        console.log('[App] No SW controller available');
-        showNotificationAlert('⚠️ Service Worker not ready');
+        console.log("[App] No SW controller available");
+        showNotificationAlert("⚠️ Service Worker not ready");
       }
     }
   }
 
   function showNotificationAlert(message) {
-    const alert = document.createElement('div');
+    const alert = document.createElement("div");
     alert.textContent = message;
     alert.style.cssText = `
       position: fixed;
@@ -429,7 +456,7 @@
     document.body.appendChild(alert);
 
     setTimeout(() => {
-      alert.style.animation = 'slideOut 0.3s ease-out';
+      alert.style.animation = "slideOut 0.3s ease-out";
       setTimeout(() => alert.remove(), 300);
     }, 3000);
   }
@@ -437,10 +464,10 @@
   function init() {
     const drank = getCurrentDrank();
 
-    const langSelect = document.getElementById('lang-select');
+    const langSelect = document.getElementById("lang-select");
     if (langSelect) {
       langSelect.value = currentLang;
-      langSelect.addEventListener('change', (e) => {
+      langSelect.addEventListener("change", (e) => {
         currentLang = e.target.value;
         localStorage.setItem(LANG_KEY, currentLang);
         updateUI(getCurrentDrank());
@@ -449,19 +476,19 @@
 
     updateUI(drank);
 
-    const btn = document.getElementById('toggle-btn');
+    const btn = document.getElementById("toggle-btn");
     if (btn) {
-      btn.addEventListener('click', handleToggle);
-      btn.addEventListener('keydown', function (e) {
-        if (e.key === 'Enter' || e.key === ' ') {
+      btn.addEventListener("click", handleToggle);
+      btn.addEventListener("keydown", function (e) {
+        if (e.key === "Enter" || e.key === " ") {
           e.preventDefault();
           handleToggle();
         }
       });
     }
 
-    const themeBtn = document.getElementById('theme-toggle');
-    if (themeBtn) themeBtn.addEventListener('click', toggleTheme);
+    const themeBtn = document.getElementById("theme-toggle");
+    if (themeBtn) themeBtn.addEventListener("click", toggleTheme);
     setTheme(loadTheme());
 
     initLocation();
@@ -473,13 +500,16 @@
       updateUI(getCurrentDrank());
     }, 60000);
 
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('sw.js').then(initReminder).catch(function () { });
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker
+        .register("sw.js")
+        .then(initReminder)
+        .catch(function () {});
     }
   }
 
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init);
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", init);
   } else {
     init();
   }

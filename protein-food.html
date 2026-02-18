@@ -9,6 +9,14 @@
   <link rel="icon" href="icons/icon2.svg" type="image/svg+xml">
   <link rel="stylesheet" href="styles.css">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="translations.js"></script>
+  <script>
+    (function () {
+      const saved = localStorage.getItem('proteinTheme');
+      const theme = saved || (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+      document.documentElement.setAttribute('data-theme', theme);
+    })();
+  </script>
   <style>
     .chart-container {
       position: relative;
@@ -37,10 +45,10 @@
     .back-btn:hover {
       background: rgba(255, 255, 255, 0.2);
     }
-    
+
     h2 {
-        text-align: center;
-        margin-bottom: 1.5rem;
+      text-align: center;
+      margin-bottom: 1.5rem;
     }
   </style>
 </head>
@@ -48,116 +56,199 @@
 <body>
   <header class="app-header">
     <div class="header-left">
-      <h1 class="logo-text">Protein Sources</h1>
+      <h1 class="logo-text" id="sources-title">Protein Sources</h1>
     </div>
     <div class="header-right">
-        <!-- Reusing existing theme toggle implementation if possible, or just keeping it simple -->
+      <div class="language-picker" style="margin-right: 1rem;">
+        <select id="lang-select" aria-label="Select Language"
+          style="background-color: var(--bg-secondary); color: var(--text-primary); border: 1px solid var(--border-color); padding: 0.5rem; border-radius: 4px; cursor: pointer;">
+          <option value="en" style="background-color: #16213e; color: rgb(224, 210, 210);">🇺🇸 EN</option>
+          <option value="fr" style="background-color: #16213e; color: rgb(229, 216, 216);">🇫🇷 FR</option>
+          <option value="nl" style="background-color: #16213e; color: rgb(212, 190, 190);">🇳🇱 NL</option>
+          <option value="tr" style="background-color: #16213e; color: rgb(200, 180, 180);">🇹🇷 TR</option>
+          <option value="ar" style="background-color: #16213e; color: rgb(210, 190, 190);">🇸🇦 AR</option>
+          <option value="es" style="background-color: #16213e; color: rgb(210, 190, 190);">🇪🇸 ES</option>
+        </select>
+      </div>
+      <button id="theme-toggle" class="theme-toggle" aria-label="Toggle Dark/Light Mode" title="Toggle Theme">
+        🌙
+      </button>
     </div>
   </header>
 
   <div class="main-content">
-    
-    <h2>Top Natural Protein Foods (per 100g)</h2>
+
+    <h2 id="page-title">Top Natural Protein Foods (per 100g)</h2>
 
     <div class="chart-container">
       <canvas id="proteinChart"></canvas>
     </div>
 
-    <a href="index.html" class="back-btn">← Back to Tracker</a>
+    <a href="index.html" class="back-btn" id="back-btn">← Back to Tracker</a>
 
   </div>
 
   <script>
+    // Get the current language from localStorage (same key as app.js)
+    let currentLanguage = localStorage.getItem('proteinTrackerLang') || 'en';
+
+    // Function to update translations
+    function updatePageTranslations() {
+      if (!translations || !translations[currentLanguage]) {
+        console.error('Translations not loaded yet');
+        return;
+      }
+
+      const t = translations[currentLanguage];
+      document.getElementById('sources-title').textContent = t.proteinSourcesTitle;
+      document.getElementById('page-title').textContent = t.proteinFoodPageTitle;
+      document.getElementById('back-btn').textContent = t.backToTracker;
+
+      // Update the title tag
+      document.title = `${t.proteinSourcesTitle} - Protein Drink Tracker`;
+
+      // Update chart if it exists
+      if (window.proteinChart) {
+        window.proteinChart.destroy();
+      }
+      initChart();
+    }
+
+    // Theme toggle
+    document.getElementById('theme-toggle').addEventListener('click', function () {
+      const current = document.documentElement.getAttribute('data-theme');
+      const newTheme = current === 'dark' ? 'light' : 'dark';
+      document.documentElement.setAttribute('data-theme', newTheme);
+      localStorage.setItem('proteinTheme', newTheme);
+      this.textContent = newTheme === 'dark' ? '🌙' : '☀️';
+      // Redraw chart with new colors
+      if (window.proteinChart) {
+        window.proteinChart.destroy();
+      }
+      initChart();
+    });
+
+    // Language selector
+    document.getElementById('lang-select').value = currentLanguage;
+    document.getElementById('lang-select').addEventListener('change', function (e) {
+      currentLanguage = e.target.value;
+      localStorage.setItem('proteinTrackerLang', currentLanguage);
+      updatePageTranslations();
+    });
+
+    // Set theme toggle icon
+    const current = document.documentElement.getAttribute('data-theme');
+    document.getElementById('theme-toggle').textContent = current === 'dark' ? '🌙' : '☀️';
+
     // Data sorted by protein amount (highest first)
     const proteinData = [
-      { food: 'Soybeans', amount: 36 },
-      { food: 'Chicken Breast', amount: 31 },
-      { food: 'Peanut Butter', amount: 25 },
-      { food: 'Almonds', amount: 21 },
-      { food: 'Paneer', amount: 18 },
-      { food: 'Eggs', amount: 13 },
-      { food: 'Greek Yogurt', amount: 10 },
-      { food: 'Lentils', amount: 9 }
+      { food: 'soybeans', amount: 36 },
+      { food: 'chickenBreast', amount: 31 },
+      { food: 'peanutButter', amount: 25 },
+      { food: 'almonds', amount: 21 },
+      { food: 'paneer', amount: 18 },
+      { food: 'eggs', amount: 13 },
+      { food: 'greekYogurt', amount: 10 },
+      { food: 'lentils', amount: 9 }
     ];
 
-    const ctx = document.getElementById('proteinChart').getContext('2d');
-    
-    // Check if we are in dark mode to adjust chart colors
-    const isDarkMode = document.documentElement.getAttribute('data-theme') !== 'light';
-    const textColor = isDarkMode ? '#eee' : '#333';
-    const gridColor = isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)';
+    function initChart() {
+      if (!translations || !translations[currentLanguage]) {
+        console.error('Translations not available for chart');
+        return;
+      }
 
-    new Chart(ctx, {
-      type: 'bar',
-      data: {
-        labels: proteinData.map(item => item.food),
-        datasets: [{
-          label: 'Protein (g)',
-          data: proteinData.map(item => item.amount),
-          backgroundColor: [
-            '#e94560',
-            '#0f3460', 
-            '#e94560',
-            '#0f3460',
-            '#e94560',
-            '#0f3460',
-            '#e94560',
-            '#0f3460'
-          ],
-          borderColor: 'rgba(233, 69, 96, 0.8)',
-          borderWidth: 1,
-          borderRadius: 8,
-          borderSkipped: false,
-        }]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-          legend: {
-            display: false
-          },
-          tooltip: {
-            callbacks: {
-              label: function(context) {
-                return context.parsed.y + 'g Protein';
-              }
-            }
-          }
+      const t = translations[currentLanguage];
+
+      // Get localized food names
+      const localizedData = proteinData.map(item => ({
+        food: t.foods[item.food],
+        amount: item.amount
+      }));
+
+      const ctx = document.getElementById('proteinChart').getContext('2d');
+
+      // Check if we are in dark mode to adjust chart colors
+      const isDarkMode = document.documentElement.getAttribute('data-theme') !== 'light';
+      const textColor = isDarkMode ? '#eee' : '#333';
+      const gridColor = isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)';
+
+      window.proteinChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: localizedData.map(item => item.food),
+          datasets: [{
+            label: t.proteinLabel,
+            data: localizedData.map(item => item.amount),
+            backgroundColor: [
+              '#e94560',
+              '#0f3460',
+              '#e94560',
+              '#0f3460',
+              '#e94560',
+              '#0f3460',
+              '#e94560',
+              '#0f3460'
+            ],
+            borderColor: 'rgba(233, 69, 96, 0.8)',
+            borderWidth: 1,
+            borderRadius: 8,
+            borderSkipped: false,
+          }]
         },
-        scales: {
-          y: {
-            beginAtZero: true,
-            grid: {
-              color: gridColor
-            },
-            ticks: {
-              color: textColor,
-              font: {
-                family: "'Segoe UI', Roboto, sans-serif"
-              }
-            },
-            title: {
-              display: true,
-              text: 'Protein Content (grams)',
-              color: textColor
-            }
-          },
-          x: {
-            grid: {
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
               display: false
             },
-            ticks: {
-              color: textColor,
-              font: {
-                family: "'Segoe UI', Roboto, sans-serif",
-                weight: 'bold'
+            tooltip: {
+              callbacks: {
+                label: function (context) {
+                  return context.parsed.y + 'g ' + t.proteinLabel.split(' ')[0];
+                }
+              }
+            }
+          },
+          scales: {
+            y: {
+              beginAtZero: true,
+              grid: {
+                color: gridColor
+              },
+              ticks: {
+                color: textColor,
+                font: {
+                  family: "'Segoe UI', Roboto, sans-serif"
+                }
+              },
+              title: {
+                display: true,
+                text: t.proteinContent,
+                color: textColor
+              }
+            },
+            x: {
+              grid: {
+                display: false
+              },
+              ticks: {
+                color: textColor,
+                font: {
+                  family: "'Segoe UI', Roboto, sans-serif",
+                  weight: 'bold'
+                }
               }
             }
           }
         }
-      }
-    });
+      });
+    }
+
+    // Initialize chart on page load
+    updatePageTranslations();
   </script>
 </body>
+
 </html>
