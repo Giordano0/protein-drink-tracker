@@ -87,7 +87,7 @@
         STORAGE_KEY,
         JSON.stringify({ dateKey, drank, drinkTimestamps, history: trimmed }),
       );
-    } catch (_) {}
+    } catch (_) { }
   }
 
   function getCurrentDrank() {
@@ -173,19 +173,16 @@
   /* 🔔 Notification reminder initialization */
   function initReminder() {
     if (!localStorage.getItem(REMINDER_KEY)) {
-      localStorage.setItem(
-        REMINDER_KEY,
-        JSON.stringify({
-          enabled: true,
-          time: "09:00",
-          lastNotified: null,
-        }),
-      );
+      localStorage.setItem(REMINDER_KEY, JSON.stringify({
+        enabled: true,
+        time: '09:00',
+        lastNotified: null
+      }));
     }
 
-    if ("Notification" in window && Notification.permission === "default") {
+    if ('Notification' in window && Notification.permission === 'default') {
       Notification.requestPermission().then(function (permission) {
-        if (permission === "granted" && navigator.serviceWorker.controller) {
+        if (permission === 'granted' && navigator.serviceWorker.controller) {
           navigator.serviceWorker.controller.postMessage({
             type: "SET_REMINDER",
             settings: JSON.parse(localStorage.getItem(REMINDER_KEY)),
@@ -224,8 +221,8 @@
       navigator.geolocation.getCurrentPosition(async (pos) => {
         const { latitude, longitude } = pos.coords;
         userLocation.city = await fetchCityName(latitude, longitude);
-        const el = document.getElementById("main-clock-label");
-        if (el) el.textContent = "Time in " + userLocation.city;
+        const el = document.getElementById('main-clock-label');
+        if (el) el.textContent = 'Time in ' + userLocation.city;
       });
     }
   }
@@ -294,11 +291,113 @@
     );
   }
 
+  /* --- New Features: Stats, Badges, Heatmap --- */
+
+  function updateMonthlyStats() {
+    const history = getHistory();
+
+    // Get current YYYY-MM
+    const now = new Date();
+    if (now.getHours() < RESET_HOUR) {
+      now.setDate(now.getDate() - 1);
+    }
+    const y = now.getFullYear();
+    const m = String(now.getMonth() + 1).padStart(2, '0');
+    const currentMonthPrefix = `${y}-${m}`;
+
+    // Count drank days this month
+    let daysDrankThisMonth = 0;
+    history.forEach(dateKey => {
+      if (dateKey.startsWith(currentMonthPrefix)) {
+        daysDrankThisMonth++;
+      }
+    });
+
+    // Calculate percentage
+    const daysInMonth = new Date(y, now.getMonth() + 1, 0).getDate();
+    const percentage = Math.round((daysDrankThisMonth / daysInMonth) * 100) || 0;
+
+    // Update DOM
+    const statsTextEl = document.getElementById('monthly-stats-text');
+    const progressFillEl = document.getElementById('monthly-progress-fill');
+
+    const texts = translations[currentLang];
+    let statsString = texts.monthlyStatsCompleted;
+    statsString = statsString.replace("{days}", daysDrankThisMonth)
+      .replace("{total}", daysInMonth)
+      .replace("{percent}", percentage);
+
+    if (statsTextEl) {
+      statsTextEl.textContent = statsString;
+    }
+
+    if (progressFillEl) {
+      progressFillEl.style.width = `${percentage}%`;
+    }
+  }
+
+  function updateBadges() {
+    const streak = getStreak();
+    const historyLength = getHistory().length;
+
+    // Define the gamification rules
+    const badges = [
+      { name: 'First Sip', icon: '🌱', condition: historyLength >= 1 },
+      { name: '3-Day Streak', icon: '🔥', condition: streak >= 3 },
+      { name: 'Week Warrior', icon: '🥉', condition: streak >= 7 },
+      { name: 'Consistency', icon: '🏆', condition: historyLength >= 30 },
+      { name: 'Centurion', icon: '💯', condition: historyLength >= 100 }
+    ];
+
+    const container = document.getElementById('badges-container');
+    if (!container) return;
+
+    let html = '';
+    badges.forEach(b => {
+      const activeClass = b.condition ? 'unlocked' : '';
+      html += `<div class="badge ${activeClass}" title="${b.name}\n${b.condition ? 'Unlocked!' : 'Keep going to unlock'}">${b.icon}</div>`;
+    });
+    container.innerHTML = html;
+  }
+
+  function updateHeatmap() {
+    const grid = document.getElementById('heatmap-grid');
+    if (!grid) return;
+
+    const historySet = new Set(getHistory());
+    const today = parseDateKey(getDateKey());
+
+    let html = '';
+    // Generate the last 364 days + today (365 squares total)
+    // grid-auto-flow: column makes it flow top-to-bottom, left-to-right naturally
+    for (let i = 364; i >= 0; i--) {
+      let d = new Date(today);
+      d.setDate(d.getDate() - i);
+
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      const key = `${y}-${m}-${day}`;
+
+      const activeClass = historySet.has(key) ? 'active' : '';
+
+      // Add tooltip showing the date
+      const displayDate = d.toLocaleDateString(currentLang, { month: 'short', day: 'numeric' });
+      html += `<div class="heatmap-cell ${activeClass}" title="${displayDate}: ${activeClass ? 'Drank protein' : 'Missed'}"></div>`;
+    }
+
+    grid.innerHTML = html;
+
+    // Auto-scroll the heatmap to the far right (present day)
+    const wrapper = document.querySelector('.heatmap-scroll-wrapper');
+    if (wrapper) wrapper.scrollLeft = wrapper.scrollWidth;
+  }
+
   /**
-   * --- Motivational Quote Functions ---
-   * @param {translations[currentLang]} texts The translations object for the current language, containing the motivationalQuotes array.
-   * @return {string} The final quote chosen for the day, based on a stored index or a new random one.
-   */
+    * --- Motivational Quote Functions ---
+    * @param {Object} texts The translations object for the current language.
+    * @return {string} The final quote chosen for today.
+  */
   function getDailyQuote(texts) {
     const todayKey = getDateKey();
     const storageKey = "proteinDailyQuote";
@@ -306,14 +405,33 @@
 
     let index;
 
-    if (storedData && storedData.startsWith(todayKey)) {
-      index = parseInt(storedData.split("-")[1]);
-    } else {
-      index = Math.floor(Math.random() * texts.motivationalQuotes.length);
-      localStorage.setItem(storageKey, `${todayKey}-${index}`);
+    // Try to load and parse the stored JSON data
+    try {
+      if (storedData) {
+        const parsed = JSON.parse(storedData);
+        if (parsed.date === todayKey && typeof parsed.index === "number") {
+          index = parsed.index;
+        }
+      }
+    } catch (e) {
+      console.warn("Could not parse stored quote data, generating new quote.");
     }
 
-    return texts.motivationalQuotes[index] || texts.motivationalQuotes[0];
+    // If no valid index for today was found, generate and save a new one
+    if (index === undefined) {
+      index = Math.floor(Math.random() * texts.motivationalQuotes.length);
+      localStorage.setItem(
+        storageKey,
+        JSON.stringify({ date: todayKey, index: index })
+      );
+    }
+
+    // Fallback check: Ensure the index is within bounds in case the translations array changed
+    if (index >= texts.motivationalQuotes.length || index < 0) {
+      index = 0;
+    }
+
+    return texts.motivationalQuotes[index];
   }
 
   /**
@@ -336,7 +454,18 @@
     const lastTimeEl = document.getElementById("last-time");
     const mainClockLabel = document.getElementById("main-clock-label");
     const proteinFoodListBtn = document.getElementById("protein-food-list-btn");
+    const achievementsTitle = document.getElementById("achievements-title");
+    const heatmapTitle = document.getElementById("heatmap-title");
+    const statsBtn = document.getElementById("toggle-stats-btn");
     const texts = translations[currentLang];
+    if (achievementsTitle) achievementsTitle.textContent = texts.achievementsTitle;
+    if (heatmapTitle) heatmapTitle.textContent = texts.yearlyConsistencyTitle;
+
+    if (statsBtn) {
+      const statsSection = document.getElementById("monthly-stats-section");
+      const isHidden = statsSection && statsSection.classList.contains("hidden");
+      statsBtn.textContent = isHidden ? texts.showStatsBtn : texts.hideStatsBtn;
+    }
 
     if (title) title.textContent = texts.title;
     if (proteinFoodListBtn)
@@ -365,6 +494,9 @@
       }
     }
     updateHistoryLog();
+    updateMonthlyStats();
+    updateBadges();
+    updateHeatmap();
 
     // Update motivational quote
     const quoteEl = document.getElementById("motivational-quote");
@@ -496,6 +628,24 @@
     updateClock();
     setInterval(updateClock, 1000);
 
+    const statsBtn = document.getElementById('toggle-stats-btn');
+    const statsSection = document.getElementById('monthly-stats-section');
+    if (statsBtn && statsSection) {
+      statsBtn.addEventListener('click', () => {
+        const texts = translations[currentLang]; // Get current language translations
+        const isHidden = statsSection.classList.contains('hidden');
+        if (isHidden) {
+          statsSection.classList.remove('hidden');
+          statsSection.setAttribute('aria-hidden', 'false');
+          statsBtn.textContent = texts.hideStatsBtn; // Use translation
+        } else {
+          statsSection.classList.add('hidden');
+          statsSection.setAttribute('aria-hidden', 'true');
+          statsBtn.textContent = texts.showStatsBtn; // Use translation
+        }
+      });
+    }
+
     setInterval(function () {
       updateUI(getCurrentDrank());
     }, 60000);
@@ -504,7 +654,7 @@
       navigator.serviceWorker
         .register("sw.js")
         .then(initReminder)
-        .catch(function () {});
+        .catch(function () { });
     }
   }
 

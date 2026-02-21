@@ -53,40 +53,66 @@
     </div>
   </header>
 
-  <div class="main-content">
+<div class="main-content">
+    
+  <div class="content-wrapper">
+      
+      <div class="tracker-core">
+        <div id="history-log" class="history-log" aria-label="7-day history log"></div>
 
-    <div id="history-log" class="history-log" aria-label="7-day history log">
-      <!-- Populated by JS -->
-    </div>
+        <p id="motivational-quote" class="motivational-quote" aria-live="polite"></p>
 
-    <p id="motivational-quote" class="motivational-quote" aria-live="polite"></p>
+        <div class="graphic-container" aria-hidden="true">
+          <img id="arm-flexed" class="graphic-img hidden" src="images/drank.png" alt="Protein drank today" />
+          <img id="arm-weak" class="graphic-img" src="images/not-drank.png" alt="Protein not yet drank today" />
+        </div>
 
-    <div class="graphic-container" aria-hidden="true">
-      <img id="arm-flexed" class="graphic-img hidden" src="images/drank.png" alt="Protein drank today" />
-      <img id="arm-weak" class="graphic-img" src="images/not-drank.png" alt="Protein not yet drank today" />
-    </div>
+        <button id="protein-food-list-btn" onclick="window.location.href='protein-food.html'" class="secondary-btn">
+          List of Protein Food (Natural)
+        </button>
 
-    <button id="protein-food-list-btn" onclick="window.location.href='protein-food.html'" class="secondary-btn">
-      List of Protein Food (Natural)
-    </button>
+        <div class="status-area">
+          <p id="status-text" class="status"></p>
+          <p id="streak-text" class="streak-text" aria-live="polite"></p>
+        </div>
 
-    <div class="status-area">
-      <p id="status-text" class="status"></p>
-      <p id="streak-text" class="streak-text" aria-live="polite"></p>
-    </div>
+        <button type="button" id="toggle-btn" class="toggle-btn" aria-pressed="false">
+          I drank my protein
+        </button>
 
+        <p id="last-time" class="last-time" style="font-size: 0.9rem; color: var(--text-muted); min-height: 1.2em;"></p>
+      </div>
 
+      <div class="dashboard-container">
+        
+        <div class="badges-section" aria-label="Achievements">
+          <h3 class="section-title" id="achievements-title">Achievements</h3>
+          <div id="badges-container" class="badges-container"></div>
+        </div>
 
-    <button type="button" id="toggle-btn" class="toggle-btn" aria-pressed="false">
-      I drank my protein
-    </button>
+        <button id="toggle-stats-btn" class="secondary-btn" aria-expanded="false">
+          Show Monthly Stats 📊
+        </button>
+        
+        <div id="monthly-stats-section" class="collapsible-section hidden" aria-hidden="true">
+          <p id="monthly-stats-text" class="stats-text">Loading stats...</p>
+          <div class="progress-bar-container">
+            <div id="monthly-progress-fill" class="progress-fill"></div>
+          </div>
+        </div>
 
-    <p id="last-time" class="last-time" style="font-size: 0.9rem; color: var(--text-muted); min-height: 1.2em;"></p>
+        <div class="heatmap-section">
+          <h3 class="section-title" id="heatmap-title">Yearly Consistency</h3>
+          <div class="heatmap-scroll-wrapper">
+            <div id="heatmap-grid" class="heatmap-grid"></div>
+          </div>
+        </div>
 
-    <div id="world-clocks" class="world-clocks footer-clocks" aria-label="World Times">
-      <!-- Populated by JS -->
-    </div>
-  </div>
+      </div>
+  </div> 
+  <div id="world-clocks" class="world-clocks footer-clocks" aria-label="World Times"></div>
+</div>
+  
   <script src="app.js"></script>
 </body>
 
