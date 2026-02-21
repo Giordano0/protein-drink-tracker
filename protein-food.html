@@ -45,10 +45,38 @@
     .back-btn:hover {
       background: rgba(255, 255, 255, 0.2);
     }
-
+    
     h2 {
       text-align: center;
+      margin-bottom: 1rem;
+    }
+
+    .filter-container {
+      text-align: center;
       margin-bottom: 1.5rem;
+    }
+
+    .filter-btn {
+      background: rgba(255, 255, 255, 0.1);
+      color: var(--text-main);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      padding: 0.5rem 1.2rem;
+      margin: 0.25rem;
+      border-radius: 20px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: all 0.3s ease;
+    }
+
+    .filter-btn:hover {
+      background: rgba(255, 255, 255, 0.2);
+    }
+
+    .filter-btn.active {
+      background: #e94560;
+      border-color: #e94560;
+      color: white;
+      box-shadow: 0 0 10px rgba(233, 69, 96, 0.4);
     }
   </style>
 </head>
@@ -76,9 +104,16 @@
     </div>
   </header>
 
-  <div class="main-content">
-
+  <div class="main-content" style="text-align: center;">
+    
     <h2 id="page-title">Top Natural Protein Foods (per 100g)</h2>
+
+  <div class="filter-container">
+    <button class="filter-btn active" id="btn-filter-all" data-filter="all">All</button>
+    <button class="filter-btn" id="btn-filter-vegan" data-filter="vegan">Vegan</button>
+    <button class="filter-btn" id="btn-filter-vegetarian" data-filter="vegetarian">Vegetarian</button>
+    <button class="filter-btn" id="btn-filter-meat" data-filter="meat">Meat</button>
+  </div>
 
     <div class="chart-container">
       <canvas id="proteinChart"></canvas>
@@ -89,112 +124,46 @@
   </div>
 
   <script>
-
     let currentLanguage = localStorage.getItem('proteinTrackerLang') || 'en';
-
-    // Function to update translations
-    function updatePageTranslations() {
-      if (!translations || !translations[currentLanguage]) {
-        console.error('Translations not loaded yet');
-        return;
-      }
-
-      const t = translations[currentLanguage];
-      document.getElementById('sources-title').textContent = t.proteinSourcesTitle;
-      document.getElementById('page-title').textContent = t.proteinFoodPageTitle;
-      document.getElementById('back-btn').textContent = t.backToTracker;
-
-
-      document.title = `${t.proteinSourcesTitle} - Protein Drink Tracker`;
-
-      // Update chart if it exists and is a Chart instance
-      if (
-        window.proteinChart &&
-        typeof window.proteinChart.destroy === 'function'
-      ) {
-        window.proteinChart.destroy();
-      }
-      initChart();
-    }
-
-    // Theme toggle
-    document.getElementById('theme-toggle').addEventListener('click', function () {
-      const current = document.documentElement.getAttribute('data-theme');
-      const newTheme = current === 'dark' ? 'light' : 'dark';
-      document.documentElement.setAttribute('data-theme', newTheme);
-      localStorage.setItem('proteinTheme', newTheme);
-      this.textContent = newTheme === 'dark' ? '🌙' : '☀️';
-      // Redraw chart with new colors
-      if (
-        window.proteinChart &&
-        typeof window.proteinChart.destroy === 'function'
-      ) {
-        window.proteinChart.destroy();
-      }
-      initChart();
-    });
-
-
-    document.getElementById('lang-select').value = currentLanguage;
-    document.getElementById('lang-select').addEventListener('change', function (e) {
-      currentLanguage = e.target.value;
-      localStorage.setItem('proteinTrackerLang', currentLanguage);
-      updatePageTranslations();
-    });
-
-    const current = document.documentElement.getAttribute('data-theme');
-    document.getElementById('theme-toggle').textContent = current === 'dark' ? '🌙' : '☀️';
-
-    // Data sorted by protein amount (highest first)
-    const proteinData = [
-      { food: 'soybeans', amount: 36 },
-      { food: 'chickenBreast', amount: 31 },
-      { food: 'peanutButter', amount: 25 },
-      { food: 'almonds', amount: 21 },
-      { food: 'paneer', amount: 18 },
-      { food: 'eggs', amount: 13 },
-      { food: 'greekYogurt', amount: 10 },
-      { food: 'lentils', amount: 9 }
+    let myChart = null; // Declare myChart globally so we can destroy/recreate it
+ 
+    const baseProteinData = [
+      { id: 'soybeans', amount: 36, category: 'vegan' },
+      { id: 'chickenBreast', amount: 31, category: 'meat' },
+      { id: 'peanutButter', amount: 25, category: 'vegan' },
+      { id: 'almonds', amount: 21, category: 'vegan' },
+      { id: 'paneer', amount: 18, category: 'vegetarian' },
+      { id: 'eggs', amount: 13, category: 'vegetarian' },
+      { id: 'greekYogurt', amount: 10, category: 'vegetarian' },
+      { id: 'lentils', amount: 9, category: 'vegan' }
     ];
 
+    let currentFilteredData = [...baseProteinData]; // Keep track of active filters
+
+    // Function to generate alternating colors
+    const getColors = (dataArray) => dataArray.map((_, index) => index % 2 === 0 ? '#e94560' : '#0f3460');
+ 
     function initChart() {
-      if (!translations || !translations[currentLanguage]) {
-        console.error('Translations not available for chart');
-        return;
-      }
-
       const t = translations[currentLanguage];
-
-      
-      const localizedData = proteinData.map(item => ({
-        food: t.foods[item.food],
-        amount: item.amount
-      }));
-
       const ctx = document.getElementById('proteinChart').getContext('2d');
-
-      // Check if we are in dark mode to adjust chart colors
       const isDarkMode = document.documentElement.getAttribute('data-theme') !== 'light';
       const textColor = isDarkMode ? '#eee' : '#333';
       const gridColor = isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)';
 
-      window.proteinChart = new Chart(ctx, {
+      // If a chart already exists, destroy it before making a new translated one
+      if (myChart) {
+        myChart.destroy();
+      }
+
+      myChart = new Chart(ctx, {
         type: 'bar',
         data: {
-          labels: localizedData.map(item => item.food),
+          // Map the data IDs to the translated names
+          labels: currentFilteredData.map(item => t.foods[item.id]),
           datasets: [{
-            label: t.proteinLabel,
-            data: localizedData.map(item => item.amount),
-            backgroundColor: [
-              '#e94560',
-              '#0f3460',
-              '#e94560',
-              '#0f3460',
-              '#e94560',
-              '#0f3460',
-              '#e94560',
-              '#0f3460'
-            ],
+            label: t.proteinLabel, // Translated label
+            data: currentFilteredData.map(item => item.amount),
+            backgroundColor: getColors(currentFilteredData),
             borderColor: 'rgba(233, 69, 96, 0.8)',
             borderWidth: 1,
             borderRadius: 8,
@@ -205,13 +174,12 @@
           responsive: true,
           maintainAspectRatio: false,
           plugins: {
-            legend: {
-              display: false
-            },
+            legend: { display: false },
             tooltip: {
               callbacks: {
-                label: function (context) {
-                  return context.parsed.y + 'g ' + t.proteinLabel.split(' ')[0];
+                label: function(context) {
+                  // e.g. "36g Protein" translated
+                  return context.parsed.y + 'g ' + t.proteinLabel.split(' ')[0]; 
                 }
               }
             }
@@ -219,41 +187,94 @@
           scales: {
             y: {
               beginAtZero: true,
-              grid: {
-                color: gridColor
-              },
-              ticks: {
-                color: textColor,
-                font: {
-                  family: "'Segoe UI', Roboto, sans-serif"
-                }
-              },
+              grid: { color: gridColor },
+              ticks: { color: textColor, font: { family: "'Segoe UI', Roboto, sans-serif" } },
               title: {
                 display: true,
-                text: t.proteinContent,
+                text: t.proteinContent, // Translated Y-axis title
                 color: textColor
               }
             },
             x: {
-              grid: {
-                display: false
-              },
-              ticks: {
-                color: textColor,
-                font: {
-                  family: "'Segoe UI', Roboto, sans-serif",
-                  weight: 'bold'
-                }
-              }
+              grid: { display: false },
+              ticks: { color: textColor, font: { family: "'Segoe UI', Roboto, sans-serif", weight: 'bold' } }
             }
           }
         }
       });
     }
 
+    function updatePageTranslations() {
+      if (!translations || !translations[currentLanguage]) {
+        console.error('Translations not loaded yet');
+        return;
+      }
 
+      const t = translations[currentLanguage];
+      
+      // Update HTML Text
+      document.getElementById('sources-title').textContent = t.proteinSourcesTitle;
+      document.getElementById('page-title').textContent = t.proteinFoodPageTitle;
+      document.getElementById('back-btn').textContent = t.backToTracker;
+      document.title = `${t.proteinSourcesTitle} - Protein Drink Tracker`;
+    
+      if (t.filters) {
+        document.getElementById('btn-filter-all').textContent = t.filters.all;
+        document.getElementById('btn-filter-vegan').textContent = t.filters.vegan;
+        document.getElementById('btn-filter-vegetarian').textContent = t.filters.vegetarian;
+        document.getElementById('btn-filter-meat').textContent = t.filters.meat;
+      }
+
+      initChart();
+    }
+
+    // Filter Logic
+    function filterChart(filterType) {
+      if (filterType === 'all') {
+        currentFilteredData = baseProteinData;
+      } else if (filterType === 'vegetarian') {
+        currentFilteredData = baseProteinData.filter(item => item.category === 'vegetarian' || item.category === 'vegan');
+      } else {
+        currentFilteredData = baseProteinData.filter(item => item.category === filterType);
+      }
+      initChart(); // Re-initialize with new filtered data to maintain translations
+    }
+
+    // Filter Button Listeners
+    const filterButtons = document.querySelectorAll('.filter-btn');
+    filterButtons.forEach(button => {
+      button.addEventListener('click', (e) => {
+        filterButtons.forEach(btn => btn.classList.remove('active'));
+        e.target.classList.add('active');
+        const filterType = e.target.getAttribute('data-filter');
+        filterChart(filterType);
+      });
+    });
+
+    // Language Dropdown Listener
+    document.getElementById('lang-select').value = currentLanguage;
+    document.getElementById('lang-select').addEventListener('change', function (e) {
+      currentLanguage = e.target.value;
+      localStorage.setItem('proteinTrackerLang', currentLanguage);
+      updatePageTranslations();
+    });
+
+    // Theme Toggle Listener
+    const current = document.documentElement.getAttribute('data-theme');
+    document.getElementById('theme-toggle').textContent = current === 'dark' ? '🌙' : '☀️';
+    
+    document.getElementById('theme-toggle').addEventListener('click', function () {
+      const current = document.documentElement.getAttribute('data-theme');
+      const newTheme = current === 'dark' ? 'light' : 'dark';
+      document.documentElement.setAttribute('data-theme', newTheme);
+      localStorage.setItem('proteinTheme', newTheme);
+      this.textContent = newTheme === 'dark' ? '🌙' : '☀️';
+      
+      initChart(); // Redraw chart for new theme colors
+    });
+
+    // Initial Load
     updatePageTranslations();
   </script>
 </body>
-
 </html>
