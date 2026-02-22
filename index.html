@@ -86,7 +86,36 @@
     <div id="world-clocks" class="world-clocks footer-clocks" aria-label="World Times">
       <!-- Populated by JS -->
     </div>
+
+    <!-- ── HISTORY TABLE SECTION ── -->
+    <div class="history-table-section">
+      <div class="history-table-header">
+        <h2 class="history-table-title">📋 Full History</h2>
+        <div class="export-btns">
+          <button class="export-btn export-csv" id="export-csv-btn" title="Download CSV">⬇ CSV</button>
+          <button class="export-btn export-pdf" id="export-pdf-btn" title="Download PDF">⬇ PDF</button>
+        </div>
+      </div>
+      <div class="history-table-wrap">
+        <table class="history-table" id="history-table">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Day</th>
+              <th>Time Logged</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody id="history-table-body">
+            <!-- Populated by JS -->
+          </tbody>
+        </table>
+        <p class="history-table-empty" id="history-table-empty">No history yet. Start tracking your protein! 💪</p>
+      </div>
+    </div>
+
   </div>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="app.js"></script>
 </body>
 

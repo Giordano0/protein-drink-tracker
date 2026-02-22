@@ -365,6 +365,7 @@
       }
     }
     updateHistoryLog();
+    updateHistoryTable();
 
     // Update motivational quote
     const quoteEl = document.getElementById("motivational-quote");
@@ -461,6 +462,142 @@
     }, 3000);
   }
 
+    /* ── HISTORY TABLE ── */
+  function updateHistoryTable() {
+    const stored = loadState();
+    const history = stored.history || [];
+    const drinkTimestamps = stored.drinkTimestamps || [];
+    const tbody = document.getElementById('history-table-body');
+    const emptyMsg = document.getElementById('history-table-empty');
+    if (!tbody) return;
+
+    if (!history.length) {
+      tbody.innerHTML = '';
+      if (emptyMsg) emptyMsg.style.display = 'block';
+      return;
+    }
+    if (emptyMsg) emptyMsg.style.display = 'none';
+
+    // Sort newest first
+    const sorted = [...history].sort((a, b) => (a < b ? 1 : -1));
+    tbody.innerHTML = sorted.map(function(dateKey) {
+      const d = parseDateKey(dateKey);
+      const dateStr = d.toLocaleDateString(currentLang, { day: '2-digit', month: 'short', year: 'numeric' });
+      const dayStr = d.toLocaleDateString(currentLang, { weekday: 'long' });
+      const ts = drinkTimestamps.find(function(t) { return t.date === dateKey; });
+      const timeStr = ts ? ts.time : '—';
+      return `<tr>
+        <td class="td-date">${dateStr}</td>
+        <td class="td-day">${dayStr}</td>
+        <td class="td-time">${timeStr}</td>
+        <td class="td-status">✅</td>
+      </tr>`;
+    }).join('');
+  }
+
+  /* ── CSV EXPORT ── */
+  function exportCSV() {
+    const stored = loadState();
+    const history = stored.history || [];
+    const drinkTimestamps = stored.drinkTimestamps || [];
+    if (!history.length) { alert('No history to export yet!'); return; }
+
+    const rows = [['Date', 'Day', 'Time Logged', 'Status']];
+    const sorted = [...history].sort((a, b) => (a < b ? 1 : -1));
+    sorted.forEach(function(dateKey) {
+      const d = parseDateKey(dateKey);
+      const dateStr = d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+      const dayStr = d.toLocaleDateString('en-GB', { weekday: 'long' });
+      const ts = drinkTimestamps.find(function(t) { return t.date === dateKey; });
+      rows.push([dateStr, dayStr, ts ? ts.time : '—', 'Drank ✓']);
+    });
+
+    const csv = rows.map(function(r) { return r.map(function(c) { return '"' + String(c).replace(/"/g, '""') + '"'; }).join(','); }).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'protein-history.csv';
+    a.click();
+  }
+
+  /* ── PDF EXPORT ── */
+  function exportPDF() {
+    const stored = loadState();
+    const history = stored.history || [];
+    const drinkTimestamps = stored.drinkTimestamps || [];
+    if (!history.length) { alert('No history to export yet!'); return; }
+    if (!window.jspdf) { alert('PDF library not loaded yet, please try again.'); return; }
+
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+    const pageW = 210, margin = 18, colW = pageW - margin * 2;
+    let y = margin;
+
+    // Header bar
+    doc.setFillColor(26, 26, 46);
+    doc.rect(0, 0, pageW, 38, 'F');
+    doc.setTextColor(238, 238, 238);
+    doc.setFontSize(20);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Protein Drink Tracker', margin, 22);
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(180, 180, 200);
+    doc.text('History exported on ' + new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' }), margin, 32);
+
+    y = 50;
+
+    // Table header
+    doc.setFillColor(42, 42, 74);
+    doc.roundedRect(margin, y, colW, 9, 2, 2, 'F');
+    doc.setTextColor(180, 180, 200);
+    doc.setFontSize(7.5);
+    doc.setFont('helvetica', 'bold');
+    const c = [margin + 3, margin + 48, margin + 90, margin + 130];
+    doc.text('DATE', c[0], y + 6);
+    doc.text('DAY', c[1], y + 6);
+    doc.text('TIME LOGGED', c[2], y + 6);
+    doc.text('STATUS', c[3], y + 6);
+    y += 12;
+
+    const sorted = [...history].sort((a, b) => (a < b ? 1 : -1));
+    sorted.forEach(function(dateKey, idx) {
+      if (y > 278) { doc.addPage(); y = margin; }
+      const d = parseDateKey(dateKey);
+      const dateStr = d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+      const dayStr = d.toLocaleDateString('en-GB', { weekday: 'long' });
+      const ts = drinkTimestamps.find(function(t) { return t.date === dateKey; });
+
+      if (idx % 2 === 0) {
+        doc.setFillColor(42, 42, 74);
+        doc.rect(margin, y - 1, colW, 9, 'F');
+      }
+
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(233, 69, 96);
+      doc.setFontSize(8.5);
+      doc.text(dateStr, c[0], y + 5);
+
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(200, 200, 220);
+      doc.text(dayStr, c[1], y + 5);
+      doc.text(ts ? ts.time : '—', c[2], y + 5);
+
+      doc.setTextColor(46, 204, 113);
+      doc.text('Drank', c[3], y + 5);
+
+      y += 10;
+    });
+
+    // Footer
+    doc.setFontSize(7);
+    doc.setTextColor(120, 120, 150);
+    doc.text(history.length + ' days tracked in total', margin, 292);
+
+    doc.save('protein-history.pdf');
+  }
+
+
   function init() {
     const drank = getCurrentDrank();
 
@@ -490,6 +627,11 @@
     const themeBtn = document.getElementById("theme-toggle");
     if (themeBtn) themeBtn.addEventListener("click", toggleTheme);
     setTheme(loadTheme());
+
+    const csvBtn = document.getElementById('export-csv-btn');
+    if (csvBtn) csvBtn.addEventListener('click', exportCSV);
+    const pdfBtn = document.getElementById('export-pdf-btn');
+    if (pdfBtn) pdfBtn.addEventListener('click', exportPDF);
 
     initLocation();
     initWorldClocks();
