@@ -5,8 +5,16 @@
   const THEME_KEY = "proteinTheme";
   const LANG_KEY = "proteinTrackerLang";
   const REMINDER_KEY = "proteinReminder";
-  const RESET_HOUR = 2; // 2am local
+  const RESET_HOUR = 2;
   const HISTORY_MAX_DAYS = 365;
+  const RING_CIRCUMFERENCE = 2 * Math.PI * 52; // matches SVG r=52
+
+  const STREAK_MILESTONES = [
+    { min: 100, icon: "\uD83D\uDC8E", class: "milestone-100" },
+    { min: 30, icon: "\uD83D\uDD25", class: "milestone-30" },
+    { min: 14, icon: "\u2B50", class: "milestone-14" },
+    { min: 7, icon: "\uD83C\uDFC6", class: "milestone-7" },
+  ];
 
   const WORLD_CITIES = [
     { name: "New York", timeZone: "America/New_York" },
@@ -16,6 +24,90 @@
     { name: "Sydney", timeZone: "Australia/Sydney" },
     { name: "Santo Domingo", timeZone: "America/Santo_Domingo" },
   ];
+
+  /* --- Confetti System --- */
+  const confetti = {
+    canvas: null,
+    ctx: null,
+    particles: [],
+    running: false,
+    colors: ['#e94560', '#2ecc71', '#f39c12', '#3498db', '#9b59b6', '#1abc9c', '#f1c40f', '#e74c3c'],
+
+    init() {
+      this.canvas = document.getElementById('confetti-canvas');
+      if (!this.canvas) return;
+      this.ctx = this.canvas.getContext('2d');
+      this.resize();
+      window.addEventListener('resize', () => this.resize());
+    },
+
+    resize() {
+      if (!this.canvas) return;
+      this.canvas.width = window.innerWidth;
+      this.canvas.height = window.innerHeight;
+    },
+
+    launch(count) {
+      if (!this.ctx) return;
+      const cx = this.canvas.width / 2;
+      const cy = this.canvas.height * 0.4;
+      for (let i = 0; i < (count || 80); i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const speed = 4 + Math.random() * 8;
+        this.particles.push({
+          x: cx + (Math.random() - 0.5) * 40,
+          y: cy + (Math.random() - 0.5) * 20,
+          vx: Math.cos(angle) * speed,
+          vy: Math.sin(angle) * speed - 3,
+          size: 4 + Math.random() * 4,
+          color: this.colors[Math.floor(Math.random() * this.colors.length)],
+          rotation: Math.random() * 360,
+          rotSpeed: (Math.random() - 0.5) * 12,
+          life: 1,
+          decay: 0.008 + Math.random() * 0.008,
+          shape: Math.random() > 0.5 ? 'rect' : 'circle',
+        });
+      }
+      if (!this.running) {
+        this.running = true;
+        this.animate();
+      }
+    },
+
+    animate() {
+      if (!this.ctx || this.particles.length === 0) {
+        this.running = false;
+        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+        return;
+      }
+      this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+      this.particles = this.particles.filter(p => {
+        p.x += p.vx;
+        p.y += p.vy;
+        p.vy += 0.15;
+        p.vx *= 0.99;
+        p.rotation += p.rotSpeed;
+        p.life -= p.decay;
+        if (p.life <= 0) return false;
+
+        this.ctx.save();
+        this.ctx.globalAlpha = p.life;
+        this.ctx.translate(p.x, p.y);
+        this.ctx.rotate((p.rotation * Math.PI) / 180);
+        this.ctx.fillStyle = p.color;
+        if (p.shape === 'rect') {
+          this.ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size * 0.6);
+        } else {
+          this.ctx.beginPath();
+          this.ctx.arc(0, 0, p.size / 2, 0, Math.PI * 2);
+          this.ctx.fill();
+        }
+        this.ctx.restore();
+        return true;
+      });
+      requestAnimationFrame(() => this.animate());
+    }
+  };
 
   /* --- Location Variables --- */
   let userLocation = { city: "Local Time", timeZone: undefined };
@@ -87,7 +179,7 @@
         STORAGE_KEY,
         JSON.stringify({ dateKey, drank, drinkTimestamps, history: trimmed }),
       );
-    } catch (_) {}
+    } catch (_) { }
   }
 
   function getCurrentDrank() {
@@ -173,19 +265,16 @@
   /* 🔔 Notification reminder initialization */
   function initReminder() {
     if (!localStorage.getItem(REMINDER_KEY)) {
-      localStorage.setItem(
-        REMINDER_KEY,
-        JSON.stringify({
-          enabled: true,
-          time: "09:00",
-          lastNotified: null,
-        }),
-      );
+      localStorage.setItem(REMINDER_KEY, JSON.stringify({
+        enabled: true,
+        time: '09:00',
+        lastNotified: null
+      }));
     }
 
-    if ("Notification" in window && Notification.permission === "default") {
+    if ('Notification' in window && Notification.permission === 'default') {
       Notification.requestPermission().then(function (permission) {
-        if (permission === "granted" && navigator.serviceWorker.controller) {
+        if (permission === 'granted' && navigator.serviceWorker.controller) {
           navigator.serviceWorker.controller.postMessage({
             type: "SET_REMINDER",
             settings: JSON.parse(localStorage.getItem(REMINDER_KEY)),
@@ -224,8 +313,8 @@
       navigator.geolocation.getCurrentPosition(async (pos) => {
         const { latitude, longitude } = pos.coords;
         userLocation.city = await fetchCityName(latitude, longitude);
-        const el = document.getElementById("main-clock-label");
-        if (el) el.textContent = "Time in " + userLocation.city;
+        const el = document.getElementById('main-clock-label');
+        if (el) el.textContent = 'Time in ' + userLocation.city;
       });
     }
   }
@@ -294,11 +383,113 @@
     );
   }
 
+  /* --- New Features: Stats, Badges, Heatmap --- */
+
+  function updateMonthlyStats() {
+    const history = getHistory();
+
+    // Get current YYYY-MM
+    const now = new Date();
+    if (now.getHours() < RESET_HOUR) {
+      now.setDate(now.getDate() - 1);
+    }
+    const y = now.getFullYear();
+    const m = String(now.getMonth() + 1).padStart(2, '0');
+    const currentMonthPrefix = `${y}-${m}`;
+
+    // Count drank days this month
+    let daysDrankThisMonth = 0;
+    history.forEach(dateKey => {
+      if (dateKey.startsWith(currentMonthPrefix)) {
+        daysDrankThisMonth++;
+      }
+    });
+
+    // Calculate percentage
+    const daysInMonth = new Date(y, now.getMonth() + 1, 0).getDate();
+    const percentage = Math.round((daysDrankThisMonth / daysInMonth) * 100) || 0;
+
+    // Update DOM
+    const statsTextEl = document.getElementById('monthly-stats-text');
+    const progressFillEl = document.getElementById('monthly-progress-fill');
+
+    const texts = translations[currentLang];
+    let statsString = texts.monthlyStatsCompleted;
+    statsString = statsString.replace("{days}", daysDrankThisMonth)
+      .replace("{total}", daysInMonth)
+      .replace("{percent}", percentage);
+
+    if (statsTextEl) {
+      statsTextEl.textContent = statsString;
+    }
+
+    if (progressFillEl) {
+      progressFillEl.style.width = `${percentage}%`;
+    }
+  }
+
+  function updateBadges() {
+    const streak = getStreak();
+    const historyLength = getHistory().length;
+
+    // Define the gamification rules
+    const badges = [
+      { name: 'First Sip', icon: '🌱', condition: historyLength >= 1 },
+      { name: '3-Day Streak', icon: '🔥', condition: streak >= 3 },
+      { name: 'Week Warrior', icon: '🥉', condition: streak >= 7 },
+      { name: 'Consistency', icon: '🏆', condition: historyLength >= 30 },
+      { name: 'Centurion', icon: '💯', condition: historyLength >= 100 }
+    ];
+
+    const container = document.getElementById('badges-container');
+    if (!container) return;
+
+    let html = '';
+    badges.forEach(b => {
+      const activeClass = b.condition ? 'unlocked' : '';
+      html += `<div class="badge ${activeClass}" title="${b.name}\n${b.condition ? 'Unlocked!' : 'Keep going to unlock'}">${b.icon}</div>`;
+    });
+    container.innerHTML = html;
+  }
+
+  function updateHeatmap() {
+    const grid = document.getElementById('heatmap-grid');
+    if (!grid) return;
+
+    const historySet = new Set(getHistory());
+    const today = parseDateKey(getDateKey());
+
+    let html = '';
+    // Generate the last 364 days + today (365 squares total)
+    // grid-auto-flow: column makes it flow top-to-bottom, left-to-right naturally
+    for (let i = 364; i >= 0; i--) {
+      let d = new Date(today);
+      d.setDate(d.getDate() - i);
+
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      const key = `${y}-${m}-${day}`;
+
+      const activeClass = historySet.has(key) ? 'active' : '';
+
+      // Add tooltip showing the date
+      const displayDate = d.toLocaleDateString(currentLang, { month: 'short', day: 'numeric' });
+      html += `<div class="heatmap-cell ${activeClass}" title="${displayDate}: ${activeClass ? 'Drank protein' : 'Missed'}"></div>`;
+    }
+
+    grid.innerHTML = html;
+
+    // Auto-scroll the heatmap to the far right (present day)
+    const wrapper = document.querySelector('.heatmap-scroll-wrapper');
+    if (wrapper) wrapper.scrollLeft = wrapper.scrollWidth;
+  }
+
   /**
-   * --- Motivational Quote Functions ---
-   * @param {translations[currentLang]} texts The translations object for the current language, containing the motivationalQuotes array.
-   * @return {string} The final quote chosen for the day, based on a stored index or a new random one.
-   */
+    * --- Motivational Quote Functions ---
+    * @param {Object} texts The translations object for the current language.
+    * @return {string} The final quote chosen for today.
+  */
   function getDailyQuote(texts) {
     const todayKey = getDateKey();
     const storageKey = "proteinDailyQuote";
@@ -306,14 +497,33 @@
 
     let index;
 
-    if (storedData && storedData.startsWith(todayKey)) {
-      index = parseInt(storedData.split("-")[1]);
-    } else {
-      index = Math.floor(Math.random() * texts.motivationalQuotes.length);
-      localStorage.setItem(storageKey, `${todayKey}-${index}`);
+    // Try to load and parse the stored JSON data
+    try {
+      if (storedData) {
+        const parsed = JSON.parse(storedData);
+        if (parsed.date === todayKey && typeof parsed.index === "number") {
+          index = parsed.index;
+        }
+      }
+    } catch (e) {
+      console.warn("Could not parse stored quote data, generating new quote.");
     }
 
-    return texts.motivationalQuotes[index] || texts.motivationalQuotes[0];
+    // If no valid index for today was found, generate and save a new one
+    if (index === undefined) {
+      index = Math.floor(Math.random() * texts.motivationalQuotes.length);
+      localStorage.setItem(
+        storageKey,
+        JSON.stringify({ date: todayKey, index: index })
+      );
+    }
+
+    // Fallback check: Ensure the index is within bounds in case the translations array changed
+    if (index >= texts.motivationalQuotes.length || index < 0) {
+      index = 0;
+    }
+
+    return texts.motivationalQuotes[index];
   }
 
   /**
@@ -323,6 +533,69 @@
    * - when language is changed
    * DO NOT ADD ONE TIME CALLED FUNCTIONS HERE, they should be in init() or separate functions called from init()
    */
+  function updateProgressRing(weeklyCount) {
+    const fillEl = document.getElementById("progress-ring-fill");
+    const countEl = document.getElementById("progress-ring-count");
+    const labelEl = document.getElementById("progress-ring-label");
+    const ringEl = document.querySelector(".progress-ring");
+    if (!fillEl || !countEl) return;
+
+    const ratio = Math.min(weeklyCount / 7, 1);
+    const offset = RING_CIRCUMFERENCE * (1 - ratio);
+    fillEl.style.strokeDashoffset = offset;
+    countEl.textContent = weeklyCount;
+
+    const texts = translations[currentLang];
+    if (labelEl) labelEl.textContent = texts.progressLabel || "/7 days";
+
+    if (ringEl) {
+      ringEl.classList.toggle("complete", weeklyCount >= 7);
+    }
+  }
+
+  function getWeeklyCount() {
+    const history = getHistory();
+    const historySet = new Set(history);
+    let count = 0;
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date();
+      if (new Date().getHours() < RESET_HOUR) d.setDate(d.getDate() - 1);
+      d.setDate(d.getDate() - i);
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, "0");
+      const day = String(d.getDate()).padStart(2, "0");
+      const key = y + "-" + m + "-" + day;
+      if (historySet.has(key)) count++;
+    }
+    if (!historySet.has(getDateKey()) && getCurrentDrank()) count++;
+    return Math.min(count, 7);
+  }
+
+  function updateStreakBadge(streak) {
+    const badge = document.getElementById("streak-badge");
+    const iconEl = document.getElementById("streak-badge-icon");
+    const textEl = document.getElementById("streak-badge-text");
+    if (!badge || !iconEl || !textEl) return;
+
+    const texts = translations[currentLang];
+    let milestone = null;
+    for (const m of STREAK_MILESTONES) {
+      if (streak >= m.min) { milestone = m; break; }
+    }
+
+    badge.className = "streak-badge";
+    if (milestone) {
+      iconEl.textContent = milestone.icon;
+      textEl.textContent = streak + " " + (texts.statusStreak || "day streak!");
+      badge.classList.add(milestone.class);
+    } else if (streak > 0) {
+      iconEl.textContent = "\uD83D\uDCAA";
+      textEl.textContent = streak + " " + (texts.statusStreak || "day streak!");
+    } else {
+      badge.classList.add("hidden");
+    }
+  }
+
   function updateUI(drank) {
     const dateKey = getDateKey();
     const stored = loadState();
@@ -336,7 +609,18 @@
     const lastTimeEl = document.getElementById("last-time");
     const mainClockLabel = document.getElementById("main-clock-label");
     const proteinFoodListBtn = document.getElementById("protein-food-list-btn");
+    const achievementsTitle = document.getElementById("achievements-title");
+    const heatmapTitle = document.getElementById("heatmap-title");
+    const statsBtn = document.getElementById("toggle-stats-btn");
     const texts = translations[currentLang];
+    if (achievementsTitle) achievementsTitle.textContent = texts.achievementsTitle;
+    if (heatmapTitle) heatmapTitle.textContent = texts.yearlyConsistencyTitle;
+
+    if (statsBtn) {
+      const statsSection = document.getElementById("monthly-stats-section");
+      const isHidden = statsSection && statsSection.classList.contains("hidden");
+      statsBtn.textContent = isHidden ? texts.showStatsBtn : texts.hideStatsBtn;
+    }
 
     if (title) title.textContent = texts.title;
     if (proteinFoodListBtn)
@@ -349,8 +633,8 @@
     if (mainClockLabel) mainClockLabel.textContent = texts.localTime;
     if (dateEl) dateEl.textContent = formatDisplayDate(dateKey);
 
+    const streak = getStreak();
     if (streakEl) {
-      const streak = getStreak();
       streakEl.textContent =
         streak > 0 ? `${streak} ${texts.statusStreak}` : "";
     }
@@ -366,8 +650,12 @@
     }
     updateHistoryLog();
     updateHistoryTable();
+    updateMonthlyStats();
+    updateBadges();
+    updateHeatmap();
+    updateProgressRing(getWeeklyCount());
+    updateStreakBadge(streak);
 
-    // Update motivational quote
     const quoteEl = document.getElementById("motivational-quote");
     if (quoteEl) quoteEl.textContent = getDailyQuote(texts);
   }
@@ -422,43 +710,48 @@
     updateUI(drank);
     navigator.vibrate?.(50);
     if (drank) {
-      console.log("[App] drank=true, attempting notification");
-      console.log("[App] SW Controller:", navigator.serviceWorker.controller);
-      if (navigator.serviceWorker.controller) {
+      confetti.launch(100);
+
+      const streak = getStreak();
+      if (streak >= 7 && STREAK_MILESTONES.some(function (m) { return streak === m.min; })) {
+        setTimeout(function () { confetti.launch(150); }, 400);
+        setTimeout(function () { confetti.launch(100); }, 800);
+      }
+
+      if (navigator.serviceWorker && navigator.serviceWorker.controller) {
         navigator.serviceWorker.controller.postMessage({
           type: "SHOW_DRINK_NOTIFICATION",
-          title: "🥤 Protein Tracked!",
+          title: "\uD83E\uDD64 Protein Tracked!",
           body: "Great job! You've logged your protein drink today.",
         });
-        console.log("[App] Message sent to SW");
-        showNotificationAlert("✅ Good Job.Keep Going..!");
-      } else {
-        console.log("[App] No SW controller available");
-        showNotificationAlert("⚠️ Service Worker not ready");
       }
+      showNotificationAlert("\u2705 Good Job. Keep Going!");
     }
   }
 
   function showNotificationAlert(message) {
     const alert = document.createElement("div");
     alert.textContent = message;
-    alert.style.cssText = `
-      position: fixed;
-      top: 20px;
-      right: 20px;
-      background: #4CAF50;
-      color: white;
-      padding: 15px 20px;
-      border-radius: 8px;
-      z-index: 9999;
-      font-weight: bold;
-      animation: slideIn 0.3s ease-out;
-    `;
+    Object.assign(alert.style, {
+      position: "fixed",
+      top: "20px",
+      right: "20px",
+      background: "linear-gradient(135deg, #2ecc71, #27ae60)",
+      color: "white",
+      padding: "14px 24px",
+      borderRadius: "12px",
+      zIndex: "9998",
+      fontWeight: "700",
+      fontSize: "0.95rem",
+      boxShadow: "0 8px 30px rgba(46, 204, 113, 0.3)",
+      animation: "slideIn 0.3s ease-out",
+      backdropFilter: "blur(10px)",
+    });
     document.body.appendChild(alert);
 
-    setTimeout(() => {
+    setTimeout(function () {
       alert.style.animation = "slideOut 0.3s ease-out";
-      setTimeout(() => alert.remove(), 300);
+      setTimeout(function () { alert.remove(); }, 300);
     }, 3000);
   }
 
@@ -599,6 +892,7 @@
 
 
   function init() {
+    confetti.init();
     const drank = getCurrentDrank();
 
     const langSelect = document.getElementById("lang-select");
@@ -638,6 +932,24 @@
     updateClock();
     setInterval(updateClock, 1000);
 
+    const statsBtn = document.getElementById('toggle-stats-btn');
+    const statsSection = document.getElementById('monthly-stats-section');
+    if (statsBtn && statsSection) {
+      statsBtn.addEventListener('click', () => {
+        const texts = translations[currentLang]; // Get current language translations
+        const isHidden = statsSection.classList.contains('hidden');
+        if (isHidden) {
+          statsSection.classList.remove('hidden');
+          statsSection.setAttribute('aria-hidden', 'false');
+          statsBtn.textContent = texts.hideStatsBtn; // Use translation
+        } else {
+          statsSection.classList.add('hidden');
+          statsSection.setAttribute('aria-hidden', 'true');
+          statsBtn.textContent = texts.showStatsBtn; // Use translation
+        }
+      });
+    }
+
     setInterval(function () {
       updateUI(getCurrentDrank());
     }, 60000);
@@ -646,7 +958,7 @@
       navigator.serviceWorker
         .register("sw.js")
         .then(initReminder)
-        .catch(function () {});
+        .catch(function () { });
     }
   }
 

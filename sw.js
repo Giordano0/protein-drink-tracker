@@ -1,9 +1,10 @@
-const CACHE_NAME = 'protein-tracker-v2';
+const CACHE_NAME = 'protein-tracker-v3';
 const urlsToCache = [
   './',
   './index.html',
   './styles.css',
   './app.js',
+  './translations.js',
   './manifest.json',
   './icons/icon2.svg',
   './images/drank.png',

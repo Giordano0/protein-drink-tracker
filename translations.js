@@ -8,8 +8,9 @@ const translations = {
     statusDone: "Protein done for today.",
     statusNotDone: "Not yet today.",
     statusStreak: "day streak!",
-    localTime: "Local Time", // Main clock label
-    lastDrankLabel: "Last drank at", // Label for last drank time
+    localTime: "Local Time",
+    lastDrankLabel: "Last drank at",
+    progressLabel: "/7 days",
     // Protein Food Page
     proteinSourcesTitle: "Protein Sources",
     proteinFoodPageTitle: "Top Natural Protein Foods (per 100g)",
@@ -36,6 +37,12 @@ const translations = {
       "Keep the streak alive! 🔥",
       "Protein power! 🏋️‍♂️",
     ],
+    filters: { all: "All", vegan: "Vegan", vegetarian: "Vegetarian", meat: "Meat" },
+    achievementsTitle: "Achievements",
+    showStatsBtn: "Show Monthly Stats 📊",
+    hideStatsBtn: "Hide Monthly Stats 📊",
+    yearlyConsistencyTitle: "Yearly Consistency",
+    monthlyStatsCompleted: "{days} of {total} days completed ({percent}%)",
   },
   fr: {
     title: "Suivi de Protéines",
@@ -45,8 +52,9 @@ const translations = {
     statusDone: "Protéine prise aujourd'hui.",
     statusNotDone: "Pas encore aujourd'hui.",
     statusStreak: "jour(s) consécutif(s)!",
-    localTime: "Heure locale", // Main clock label
-    lastDrankLabel: "Dernier bu à", // Label for last drank time
+    localTime: "Heure locale",
+    lastDrankLabel: "Dernier bu à",
+    progressLabel: "/7 jours",
     // Protein Food Page
     proteinSourcesTitle: "Sources de Protéines",
     proteinFoodPageTitle:
@@ -74,6 +82,12 @@ const translations = {
       "Continue sur ta lancée ! 🔥",
       "La force des protéines ! 🏋️‍♂️",
     ],
+    filters: { all: "Tous", vegan: "Végétalien", vegetarian: "Végétarien", meat: "Viande" },
+    achievementsTitle: "Réalisations",
+    showStatsBtn: "Afficher les statistiques mensuelles 📊",
+    hideStatsBtn: "Masquer les statistiques mensuelles 📊",
+    yearlyConsistencyTitle: "Régularité annuelle",
+    monthlyStatsCompleted: "{days} sur {total} jours terminés ({percent}%)",
   },
   nl: {
     title: "Eiwitdrank Tracker",
@@ -83,8 +97,9 @@ const translations = {
     statusDone: "Eiwit voor vandaag gedronken.",
     statusNotDone: "Nog niet vandaag.",
     statusStreak: "dag(en) op rij!",
-    localTime: "Lokale tijd", // Main clock label
-    lastDrankLabel: "Laatste gedronken om", // Label for last drank time
+    localTime: "Lokale tijd",
+    lastDrankLabel: "Laatste gedronken om",
+    progressLabel: "/7 dagen",
     // Protein Food Page
     proteinSourcesTitle: "Eiwitbronnen",
     proteinFoodPageTitle:
@@ -112,17 +127,24 @@ const translations = {
       "Houd de reeks levend! 🔥",
       "Eiwitkracht! 🏋️‍♂️",
     ],
+    filters: { all: "Alles", vegan: "Veganistisch", vegetarian: "Vegetarisch", meat: "Vlees" },
+    achievementsTitle: "Prestaties",
+    showStatsBtn: "Toon maandelijkse statistieken 📊",
+    hideStatsBtn: "Verberg maandelijkse statistieken 📊",
+    yearlyConsistencyTitle: "Jaarlijkse consistentie",
+    monthlyStatsCompleted: "{days} van {total} dagen voltooid ({percent}%)",
   },
   ar: {
     title: "متعقب مشروب البروتين",
-    proteinFoodListBtn: "قائمة الأطعمة البروتينية (الطبيعية)", // TODO: verify this translation
+    proteinFoodListBtn: "قائمة الأطعمة البروتينية (الطبيعية)",
     btnDrank: "شربت بروتيني",
     btnDrankUndo: "تراجع",
     statusDone: "تم شرب البروتين اليوم.",
     statusNotDone: "لم يتم الشرب بعد اليوم.",
     statusStreak: "يوم متتالي!",
-    localTime: "التوقيت المحلي", // Main clock label // TODO: verify this translation
-    lastDrankLabel: "آخر مشروب في", // Label for last drank time // TODO: verify this translation
+    localTime: "التوقيت المحلي",
+    lastDrankLabel: "آخر مشروب في",
+    progressLabel: "/٧ أيام",
     // Protein Food Page
     proteinSourcesTitle: "مصادر البروتين",
     proteinFoodPageTitle:
@@ -151,17 +173,24 @@ const translations = {
       "حافظ على سلسلة انتصاراتك! 🔥",
       "قوة البروتين! 🏋️‍♂️",
     ],
+    filters: { all: "الكل", vegan: "نباتي صرف", vegetarian: "نباتي", meat: "لحوم" },
+    achievementsTitle: "الإنجازات",
+    showStatsBtn: "إظهار الإحصائيات الشهرية 📊",
+    hideStatsBtn: "إخفاء الإحصائيات الشهرية 📊",
+    yearlyConsistencyTitle: "الاستمرارية السنوية",
+    monthlyStatsCompleted: "تم إنجاز {days} من أصل {total} يومًا ({percent}%)",
   },
   tr: {
     title: "Proteinli İçecek Takipçisi",
-    proteinFoodListBtn: "Protein İçeren Gıdalar Listesi (Doğal)", // TODO: verify this translation
+    proteinFoodListBtn: "Protein İçeren Gıdalar Listesi (Doğal)",
     btnDrank: "Proteinimi içtim",
     btnDrankUndo: "Geri al",
     statusDone: "Bugünkü protein içildi.",
     statusNotDone: "Bugün henüz protein içilmedi.",
     statusStreak: "günlük seri!",
-    localTime: "Yerel Saat", // Main clock label // TODO: verify this translation
-    lastDrankLabel: "En son şu tarihte içildi", // Label for last drank time // TODO: verify this translation
+    localTime: "Yerel Saat",
+    lastDrankLabel: "En son şu tarihte içildi",
+    progressLabel: "/7 gün",
     // Protein Food Page
     proteinSourcesTitle: "Protein Kaynakları",
     proteinFoodPageTitle:
@@ -190,6 +219,12 @@ const translations = {
       "Seriyi devam ettir! 🔥",
       "Protein gücü! 🏋️‍♂️",
     ],
+    filters: { all: "Tümü", vegan: "Vegan", vegetarian: "Vejetaryen", meat: "Et" },
+    achievementsTitle: "Başarılar",
+    showStatsBtn: "Aylık İstatistikleri Göster 📊",
+    hideStatsBtn: "Aylık İstatistikleri Gizle 📊",
+    yearlyConsistencyTitle: "Yıllık Tutarlılık",
+    monthlyStatsCompleted: "{total} günün {days} günü tamamlandı ({percent}%)",
   },
   es: {
     title: "Registro de Bebida de Proteína",
@@ -199,8 +234,9 @@ const translations = {
     statusDone: "Proteína completada por hoy.",
     statusNotDone: "Aún no por hoy.",
     statusStreak: "¡días de racha!",
-    localTime: "Hora Local", // Etiqueta principal del reloj
-    lastDrankLabel: "Última vez que bebiste", // Etiqueta de la última vez
+    localTime: "Hora Local",
+    lastDrankLabel: "Última vez que bebiste",
+    progressLabel: "/7 días",
     // Protein Food Page
     proteinSourcesTitle: "Fuentes de Proteína",
     proteinFoodPageTitle: "Top Alimentos Naturales con Proteína (por 100g)",
@@ -227,5 +263,11 @@ const translations = {
       "¡Mantén la racha viva! 🔥",
       "¡Poder de proteína! 🏋️‍♂️",
     ],
+    filters: { all: "Todo", vegan: "Vegano", vegetarian: "Vegetariano", meat: "Carne" },
+    achievementsTitle: "Logros",
+    showStatsBtn: "Mostrar Estadísticas Mensuales 📊",
+    hideStatsBtn: "Ocultar Estadísticas Mensuales 📊",
+    yearlyConsistencyTitle: "Constancia Anual",
+    monthlyStatsCompleted: "{days} de {total} días completados ({percent}%)",
   },
 };
