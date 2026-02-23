@@ -823,8 +823,12 @@
 
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
-    const pageW = 210, margin = 18, colW = pageW - margin * 2;
+    const pageW = 210, pageH = 297, margin = 18, colW = pageW - margin * 2;
     let y = margin;
+
+    // Full page dark background
+    doc.setFillColor(26, 26, 46);
+    doc.rect(0, 0, pageW, pageH, 'F');
 
     // Header bar
     doc.setFillColor(26, 26, 46);
@@ -861,10 +865,9 @@
       const dayStr = d.toLocaleDateString('en-GB', { weekday: 'long' });
       const ts = drinkTimestamps.find(function(t) { return t.date === dateKey; });
 
-      if (idx % 2 === 0) {
-        doc.setFillColor(42, 42, 74);
-        doc.rect(margin, y - 1, colW, 9, 'F');
-      }
+      // Draw a dark row background for every row to keep PDF fully dark
+      doc.setFillColor(42, 42, 74);
+      doc.rect(margin, y - 1, colW, 9, 'F');
 
       doc.setFont('helvetica', 'bold');
       doc.setTextColor(233, 69, 96);
