@@ -8,6 +8,9 @@
   <title>Protein Drink Tracker</title>
 
   <link rel="icon" href="icons/icon2.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css">
   <link rel="manifest" href="manifest.json">
 
@@ -36,17 +39,14 @@
     </div>
     <p id="date-text" class="date-text" aria-live="polite"></p>
     <div class="header-right">
-      <div class="language-picker" style="margin-right: 1rem;">
-        <select id="lang-select" aria-label="Select Language"
-          style="background-color: var(--bg-secondary); color: var(--text-primary); border: 1px solid var(--border-color); padding: 0.5rem; border-radius: 4px; cursor: pointer;">
-          <option value="en" style="background-color: #16213e; color: rgb(224, 210, 210);">🇺🇸 EN</option>
-          <option value="fr" style="background-color: #16213e; color: rgb(229, 216, 216);">🇫🇷 FR</option>
-          <option value="nl" style="background-color: #16213e; color: rgb(212, 190, 190);">🇳🇱 NL</option>
-          <option value="tr" style="background-color: #16213e; color: rgb(200, 180, 180);">🇹🇷 TR</option>
-          <option value="ar" style="background-color: #16213e; color: rgb(210, 190, 190);">🇸🇦 AR</option>
-          <option value="es" style="background-color: #16213e; color: rgb(210, 190, 190);">🇪🇸 ES</option>
-        </select>
-      </div>
+      <select id="lang-select" class="lang-select" aria-label="Select Language">
+        <option value="en">🇺🇸 EN</option>
+        <option value="fr">🇫🇷 FR</option>
+        <option value="nl">🇳🇱 NL</option>
+        <option value="tr">🇹🇷 TR</option>
+        <option value="ar">🇸🇦 AR</option>
+        <option value="es">🇪🇸 ES</option>
+      </select>
       <button id="theme-toggle" class="theme-toggle" aria-label="Toggle Dark/Light Mode" title="Toggle Theme">
         🌙
       </button>
@@ -54,6 +54,8 @@
   </header>
 
 <div class="main-content">
+
+    <canvas id="confetti-canvas" aria-hidden="true"></canvas> 
     
   <div class="content-wrapper">
       
@@ -89,6 +91,22 @@
           <h3 class="section-title" id="achievements-title">Achievements</h3>
           <div id="badges-container" class="badges-container"></div>
         </div>
+
+        <div class="hero-section">
+        <div class="progress-ring-wrapper">
+          <svg class="progress-ring" viewBox="0 0 120 120" aria-label="Weekly progress">
+            <circle class="progress-ring__bg" cx="60" cy="60" r="52" />
+            <circle class="progress-ring__fill" cx="60" cy="60" r="52" id="progress-ring-fill" />
+            <text x="60" y="54" class="progress-ring__count" id="progress-ring-count" text-anchor="middle" dominant-baseline="central">0</text>
+            <text x="60" y="72" class="progress-ring__label" id="progress-ring-label" text-anchor="middle" dominant-baseline="central">/7 days</text>
+          </svg>
+        </div>  
+      </div>
+
+    <div id="streak-badge" class="streak-badge hidden" aria-live="polite">
+      <span class="streak-badge__icon" id="streak-badge-icon"></span>
+      <span class="streak-badge__text" id="streak-badge-text"></span>
+    </div>
 
         <button id="toggle-stats-btn" class="secondary-btn" aria-expanded="false">
           Show Monthly Stats 📊
