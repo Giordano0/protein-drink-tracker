@@ -5,8 +5,16 @@
   const THEME_KEY = "proteinTheme";
   const LANG_KEY = "proteinTrackerLang";
   const REMINDER_KEY = "proteinReminder";
-  const RESET_HOUR = 2; // 2am local
+  const RESET_HOUR = 2;
   const HISTORY_MAX_DAYS = 365;
+  const RING_CIRCUMFERENCE = 2 * Math.PI * 52; // matches SVG r=52
+
+  const STREAK_MILESTONES = [
+    { min: 100, icon: "\uD83D\uDC8E", class: "milestone-100" },
+    { min: 30,  icon: "\uD83D\uDD25", class: "milestone-30" },
+    { min: 14,  icon: "\u2B50",        class: "milestone-14" },
+    { min: 7,   icon: "\uD83C\uDFC6", class: "milestone-7" },
+  ];
 
   const WORLD_CITIES = [
     { name: "New York", timeZone: "America/New_York" },
@@ -16,6 +24,90 @@
     { name: "Sydney", timeZone: "Australia/Sydney" },
     { name: "Santo Domingo", timeZone: "America/Santo_Domingo" },
   ];
+
+  /* --- Confetti System --- */
+  const confetti = {
+    canvas: null,
+    ctx: null,
+    particles: [],
+    running: false,
+    colors: ['#e94560', '#2ecc71', '#f39c12', '#3498db', '#9b59b6', '#1abc9c', '#f1c40f', '#e74c3c'],
+
+    init() {
+      this.canvas = document.getElementById('confetti-canvas');
+      if (!this.canvas) return;
+      this.ctx = this.canvas.getContext('2d');
+      this.resize();
+      window.addEventListener('resize', () => this.resize());
+    },
+
+    resize() {
+      if (!this.canvas) return;
+      this.canvas.width = window.innerWidth;
+      this.canvas.height = window.innerHeight;
+    },
+
+    launch(count) {
+      if (!this.ctx) return;
+      const cx = this.canvas.width / 2;
+      const cy = this.canvas.height * 0.4;
+      for (let i = 0; i < (count || 80); i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const speed = 4 + Math.random() * 8;
+        this.particles.push({
+          x: cx + (Math.random() - 0.5) * 40,
+          y: cy + (Math.random() - 0.5) * 20,
+          vx: Math.cos(angle) * speed,
+          vy: Math.sin(angle) * speed - 3,
+          size: 4 + Math.random() * 4,
+          color: this.colors[Math.floor(Math.random() * this.colors.length)],
+          rotation: Math.random() * 360,
+          rotSpeed: (Math.random() - 0.5) * 12,
+          life: 1,
+          decay: 0.008 + Math.random() * 0.008,
+          shape: Math.random() > 0.5 ? 'rect' : 'circle',
+        });
+      }
+      if (!this.running) {
+        this.running = true;
+        this.animate();
+      }
+    },
+
+    animate() {
+      if (!this.ctx || this.particles.length === 0) {
+        this.running = false;
+        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+        return;
+      }
+      this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+      this.particles = this.particles.filter(p => {
+        p.x += p.vx;
+        p.y += p.vy;
+        p.vy += 0.15;
+        p.vx *= 0.99;
+        p.rotation += p.rotSpeed;
+        p.life -= p.decay;
+        if (p.life <= 0) return false;
+
+        this.ctx.save();
+        this.ctx.globalAlpha = p.life;
+        this.ctx.translate(p.x, p.y);
+        this.ctx.rotate((p.rotation * Math.PI) / 180);
+        this.ctx.fillStyle = p.color;
+        if (p.shape === 'rect') {
+          this.ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size * 0.6);
+        } else {
+          this.ctx.beginPath();
+          this.ctx.arc(0, 0, p.size / 2, 0, Math.PI * 2);
+          this.ctx.fill();
+        }
+        this.ctx.restore();
+        return true;
+      });
+      requestAnimationFrame(() => this.animate());
+    }
+  };
 
   /* --- Location Variables --- */
   let userLocation = { city: "Local Time", timeZone: undefined };
@@ -323,6 +415,69 @@
    * - when language is changed
    * DO NOT ADD ONE TIME CALLED FUNCTIONS HERE, they should be in init() or separate functions called from init()
    */
+  function updateProgressRing(weeklyCount) {
+    const fillEl = document.getElementById("progress-ring-fill");
+    const countEl = document.getElementById("progress-ring-count");
+    const labelEl = document.getElementById("progress-ring-label");
+    const ringEl = document.querySelector(".progress-ring");
+    if (!fillEl || !countEl) return;
+
+    const ratio = Math.min(weeklyCount / 7, 1);
+    const offset = RING_CIRCUMFERENCE * (1 - ratio);
+    fillEl.style.strokeDashoffset = offset;
+    countEl.textContent = weeklyCount;
+
+    const texts = translations[currentLang];
+    if (labelEl) labelEl.textContent = texts.progressLabel || "/7 days";
+
+    if (ringEl) {
+      ringEl.classList.toggle("complete", weeklyCount >= 7);
+    }
+  }
+
+  function getWeeklyCount() {
+    const history = getHistory();
+    const historySet = new Set(history);
+    let count = 0;
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date();
+      if (new Date().getHours() < RESET_HOUR) d.setDate(d.getDate() - 1);
+      d.setDate(d.getDate() - i);
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, "0");
+      const day = String(d.getDate()).padStart(2, "0");
+      const key = y + "-" + m + "-" + day;
+      if (historySet.has(key)) count++;
+    }
+    if (!historySet.has(getDateKey()) && getCurrentDrank()) count++;
+    return Math.min(count, 7);
+  }
+
+  function updateStreakBadge(streak) {
+    const badge = document.getElementById("streak-badge");
+    const iconEl = document.getElementById("streak-badge-icon");
+    const textEl = document.getElementById("streak-badge-text");
+    if (!badge || !iconEl || !textEl) return;
+
+    const texts = translations[currentLang];
+    let milestone = null;
+    for (const m of STREAK_MILESTONES) {
+      if (streak >= m.min) { milestone = m; break; }
+    }
+
+    badge.className = "streak-badge";
+    if (milestone) {
+      iconEl.textContent = milestone.icon;
+      textEl.textContent = streak + " " + (texts.statusStreak || "day streak!");
+      badge.classList.add(milestone.class);
+    } else if (streak > 0) {
+      iconEl.textContent = "\uD83D\uDCAA";
+      textEl.textContent = streak + " " + (texts.statusStreak || "day streak!");
+    } else {
+      badge.classList.add("hidden");
+    }
+  }
+
   function updateUI(drank) {
     const dateKey = getDateKey();
     const stored = loadState();
@@ -349,8 +504,8 @@
     if (mainClockLabel) mainClockLabel.textContent = texts.localTime;
     if (dateEl) dateEl.textContent = formatDisplayDate(dateKey);
 
+    const streak = getStreak();
     if (streakEl) {
-      const streak = getStreak();
       streakEl.textContent =
         streak > 0 ? `${streak} ${texts.statusStreak}` : "";
     }
@@ -364,9 +519,11 @@
         lastTimeEl.textContent = "";
       }
     }
-    updateHistoryLog();
 
-    // Update motivational quote
+    updateHistoryLog();
+    updateProgressRing(getWeeklyCount());
+    updateStreakBadge(streak);
+
     const quoteEl = document.getElementById("motivational-quote");
     if (quoteEl) quoteEl.textContent = getDailyQuote(texts);
   }
@@ -421,47 +578,53 @@
     updateUI(drank);
     navigator.vibrate?.(50);
     if (drank) {
-      console.log("[App] drank=true, attempting notification");
-      console.log("[App] SW Controller:", navigator.serviceWorker.controller);
-      if (navigator.serviceWorker.controller) {
+      confetti.launch(100);
+
+      const streak = getStreak();
+      if (streak >= 7 && STREAK_MILESTONES.some(function(m) { return streak === m.min; })) {
+        setTimeout(function() { confetti.launch(150); }, 400);
+        setTimeout(function() { confetti.launch(100); }, 800);
+      }
+
+      if (navigator.serviceWorker && navigator.serviceWorker.controller) {
         navigator.serviceWorker.controller.postMessage({
           type: "SHOW_DRINK_NOTIFICATION",
-          title: "🥤 Protein Tracked!",
+          title: "\uD83E\uDD64 Protein Tracked!",
           body: "Great job! You've logged your protein drink today.",
         });
-        console.log("[App] Message sent to SW");
-        showNotificationAlert("✅ Good Job.Keep Going..!");
-      } else {
-        console.log("[App] No SW controller available");
-        showNotificationAlert("⚠️ Service Worker not ready");
       }
+      showNotificationAlert("\u2705 Good Job. Keep Going!");
     }
   }
 
   function showNotificationAlert(message) {
     const alert = document.createElement("div");
     alert.textContent = message;
-    alert.style.cssText = `
-      position: fixed;
-      top: 20px;
-      right: 20px;
-      background: #4CAF50;
-      color: white;
-      padding: 15px 20px;
-      border-radius: 8px;
-      z-index: 9999;
-      font-weight: bold;
-      animation: slideIn 0.3s ease-out;
-    `;
+    Object.assign(alert.style, {
+      position: "fixed",
+      top: "20px",
+      right: "20px",
+      background: "linear-gradient(135deg, #2ecc71, #27ae60)",
+      color: "white",
+      padding: "14px 24px",
+      borderRadius: "12px",
+      zIndex: "9998",
+      fontWeight: "700",
+      fontSize: "0.95rem",
+      boxShadow: "0 8px 30px rgba(46, 204, 113, 0.3)",
+      animation: "slideIn 0.3s ease-out",
+      backdropFilter: "blur(10px)",
+    });
     document.body.appendChild(alert);
 
-    setTimeout(() => {
+    setTimeout(function() {
       alert.style.animation = "slideOut 0.3s ease-out";
-      setTimeout(() => alert.remove(), 300);
+      setTimeout(function() { alert.remove(); }, 300);
     }, 3000);
   }
 
   function init() {
+    confetti.init();
     const drank = getCurrentDrank();
 
     const langSelect = document.getElementById("lang-select");

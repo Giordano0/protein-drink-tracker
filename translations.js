@@ -8,8 +8,9 @@ const translations = {
     statusDone: "Protein done for today.",
     statusNotDone: "Not yet today.",
     statusStreak: "day streak!",
-    localTime: "Local Time", // Main clock label
-    lastDrankLabel: "Last drank at", // Label for last drank time
+    localTime: "Local Time",
+    lastDrankLabel: "Last drank at",
+    progressLabel: "/7 days",
     // Protein Food Page
     proteinSourcesTitle: "Protein Sources",
     proteinFoodPageTitle: "Top Natural Protein Foods (per 100g)",
@@ -45,8 +46,9 @@ const translations = {
     statusDone: "Protéine prise aujourd'hui.",
     statusNotDone: "Pas encore aujourd'hui.",
     statusStreak: "jour(s) consécutif(s)!",
-    localTime: "Heure locale", // Main clock label
-    lastDrankLabel: "Dernier bu à", // Label for last drank time
+    localTime: "Heure locale",
+    lastDrankLabel: "Dernier bu à",
+    progressLabel: "/7 jours",
     // Protein Food Page
     proteinSourcesTitle: "Sources de Protéines",
     proteinFoodPageTitle:
@@ -83,8 +85,9 @@ const translations = {
     statusDone: "Eiwit voor vandaag gedronken.",
     statusNotDone: "Nog niet vandaag.",
     statusStreak: "dag(en) op rij!",
-    localTime: "Lokale tijd", // Main clock label
-    lastDrankLabel: "Laatste gedronken om", // Label for last drank time
+    localTime: "Lokale tijd",
+    lastDrankLabel: "Laatste gedronken om",
+    progressLabel: "/7 dagen",
     // Protein Food Page
     proteinSourcesTitle: "Eiwitbronnen",
     proteinFoodPageTitle:
@@ -115,14 +118,15 @@ const translations = {
   },
   ar: {
     title: "متعقب مشروب البروتين",
-    proteinFoodListBtn: "قائمة الأطعمة البروتينية (الطبيعية)", // TODO: verify this translation
+    proteinFoodListBtn: "قائمة الأطعمة البروتينية (الطبيعية)",
     btnDrank: "شربت بروتيني",
     btnDrankUndo: "تراجع",
     statusDone: "تم شرب البروتين اليوم.",
     statusNotDone: "لم يتم الشرب بعد اليوم.",
     statusStreak: "يوم متتالي!",
-    localTime: "التوقيت المحلي", // Main clock label // TODO: verify this translation
-    lastDrankLabel: "آخر مشروب في", // Label for last drank time // TODO: verify this translation
+    localTime: "التوقيت المحلي",
+    lastDrankLabel: "آخر مشروب في",
+    progressLabel: "/٧ أيام",
     // Protein Food Page
     proteinSourcesTitle: "مصادر البروتين",
     proteinFoodPageTitle:
@@ -154,14 +158,15 @@ const translations = {
   },
   tr: {
     title: "Proteinli İçecek Takipçisi",
-    proteinFoodListBtn: "Protein İçeren Gıdalar Listesi (Doğal)", // TODO: verify this translation
+    proteinFoodListBtn: "Protein İçeren Gıdalar Listesi (Doğal)",
     btnDrank: "Proteinimi içtim",
     btnDrankUndo: "Geri al",
     statusDone: "Bugünkü protein içildi.",
     statusNotDone: "Bugün henüz protein içilmedi.",
     statusStreak: "günlük seri!",
-    localTime: "Yerel Saat", // Main clock label // TODO: verify this translation
-    lastDrankLabel: "En son şu tarihte içildi", // Label for last drank time // TODO: verify this translation
+    localTime: "Yerel Saat",
+    lastDrankLabel: "En son şu tarihte içildi",
+    progressLabel: "/7 gün",
     // Protein Food Page
     proteinSourcesTitle: "Protein Kaynakları",
     proteinFoodPageTitle:
@@ -199,8 +204,9 @@ const translations = {
     statusDone: "Proteína completada por hoy.",
     statusNotDone: "Aún no por hoy.",
     statusStreak: "¡días de racha!",
-    localTime: "Hora Local", // Etiqueta principal del reloj
-    lastDrankLabel: "Última vez que bebiste", // Etiqueta de la última vez
+    localTime: "Hora Local",
+    lastDrankLabel: "Última vez que bebiste",
+    progressLabel: "/7 días",
     // Protein Food Page
     proteinSourcesTitle: "Fuentes de Proteína",
     proteinFoodPageTitle: "Top Alimentos Naturales con Proteína (por 100g)",
