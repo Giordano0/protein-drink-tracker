@@ -700,6 +700,12 @@ body {
   padding: 0 15px; 
 }
 
+.heatmap-grid::after {
+  content: "";
+  display: block;
+  width: 25px;
+}
+
 .heatmap-cell {
   width: 12px;
   height: 12px;
