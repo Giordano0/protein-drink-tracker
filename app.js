@@ -23,6 +23,7 @@
     { name: "Tokyo", timeZone: "Asia/Tokyo" },
     { name: "Sydney", timeZone: "Australia/Sydney" },
     { name: "Santo Domingo", timeZone: "America/Santo_Domingo" },
+    { name: "Stockholm", timeZone: "Europe/Stockholm" },
   ];
 
   /* --- Confetti System --- */
@@ -615,6 +616,22 @@
     const texts = translations[currentLang];
     if (achievementsTitle) achievementsTitle.textContent = texts.achievementsTitle;
     if (heatmapTitle) heatmapTitle.textContent = texts.yearlyConsistencyTitle;
+    const fullHistoryTitleEl = document.getElementById("full-history-title");
+    if (fullHistoryTitleEl) fullHistoryTitleEl.textContent = texts.fullHistoryTitle;
+    const exportCsvBtnEl = document.getElementById("export-csv-btn");
+    if (exportCsvBtnEl) exportCsvBtnEl.textContent = texts.exportCsvBtn;
+    const exportPdfBtnEl = document.getElementById("export-pdf-btn");
+    if (exportPdfBtnEl) exportPdfBtnEl.textContent = texts.exportPdfBtn;
+    const thDate = document.getElementById("history-th-date");
+    if (thDate) thDate.textContent = texts.historyTableDate;
+    const thDay = document.getElementById("history-th-day");
+    if (thDay) thDay.textContent = texts.historyTableDay;
+    const thTime = document.getElementById("history-th-time");
+    if (thTime) thTime.textContent = texts.historyTableTimeLogged;
+    const thStatus = document.getElementById("history-th-status");
+    if (thStatus) thStatus.textContent = texts.historyTableStatus;
+    const historyEmptyEl = document.getElementById("history-table-empty");
+    if (historyEmptyEl) historyEmptyEl.textContent = texts.historyEmpty;
 
     if (statsBtn) {
       const statsSection = document.getElementById("monthly-stats-section");
@@ -793,9 +810,9 @@
     const stored = loadState();
     const history = stored.history || [];
     const drinkTimestamps = stored.drinkTimestamps || [];
-    if (!history.length) { alert('No history to export yet!'); return; }
-
-    const rows = [['Date', 'Day', 'Time Logged', 'Status']];
+    const t = translations[currentLang];
+    if (!history.length) { alert(t.alertNoHistoryExport); return; }
+    const rows = [[t.historyTableDate, t.historyTableDay, t.historyTableTimeLogged, t.historyTableStatus]];
     const sorted = [...history].sort((a, b) => (a < b ? 1 : -1));
     sorted.forEach(function(dateKey) {
       const d = parseDateKey(dateKey);
@@ -818,9 +835,9 @@
     const stored = loadState();
     const history = stored.history || [];
     const drinkTimestamps = stored.drinkTimestamps || [];
-    if (!history.length) { alert('No history to export yet!'); return; }
+    const t = translations[currentLang];
+    if (!history.length) { alert(t.alertNoHistoryExport); return; }
     if (!window.jspdf) { alert('PDF library not loaded yet, please try again.'); return; }
-
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
     const pageW = 210, pageH = 297, margin = 18, colW = pageW - margin * 2;
@@ -851,10 +868,10 @@
     doc.setFontSize(7.5);
     doc.setFont('helvetica', 'bold');
     const c = [margin + 3, margin + 48, margin + 90, margin + 130];
-    doc.text('DATE', c[0], y + 6);
-    doc.text('DAY', c[1], y + 6);
-    doc.text('TIME LOGGED', c[2], y + 6);
-    doc.text('STATUS', c[3], y + 6);
+    doc.text(t.historyTableDate, c[0], y + 6);
+    doc.text(t.historyTableDay, c[1], y + 6);
+    doc.text(t.historyTableTimeLogged, c[2], y + 6);
+    doc.text(t.historyTableStatus, c[3], y + 6);
     y += 12;
 
     const sorted = [...history].sort((a, b) => (a < b ? 1 : -1));

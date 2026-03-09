@@ -46,6 +46,7 @@
         <option value="tr">🇹🇷 TR</option>
         <option value="ar">🇸🇦 AR</option>
         <option value="es">🇪🇸 ES</option>
+        <option value="sv">🇸🇪 SV</option>
       </select>
       <button id="theme-toggle" class="theme-toggle" aria-label="Toggle Dark/Light Mode" title="Toggle Theme">
         🌙
@@ -133,7 +134,7 @@
   <!-- ── HISTORY TABLE SECTION ── -->
   <div class="history-table-section">
     <div class="history-table-header">
-      <h2 class="history-table-title">📋 Full History</h2>
+      <h2 class="history-table-title" id="full-history-title">📋 Full History</h2>
       <div class="export-btns">
         <button class="export-btn export-csv" id="export-csv-btn" title="Download CSV">⬇ CSV</button>
         <button class="export-btn export-pdf" id="export-pdf-btn" title="Download PDF">⬇ PDF</button>
@@ -143,10 +144,10 @@
       <table class="history-table" id="history-table">
         <thead>
           <tr>
-            <th>Date</th>
-            <th>Day</th>
-            <th>Time Logged</th>
-            <th>Status</th>
+            <th id="history-th-date">Date</th>
+            <th id="history-th-day">Day</th>
+            <th id="history-th-time">Time Logged</th>
+            <th id="history-th-status">Status</th>
           </tr>
         </thead>
         <tbody id="history-table-body">
