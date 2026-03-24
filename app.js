@@ -728,6 +728,7 @@
     updateUI(drank);
     navigator.vibrate?.(50);
     if (drank) {
+      const texts = translations[currentLang]; //get current translation
       confetti.launch(100);
 
       const streak = getStreak();
@@ -739,11 +740,11 @@
       if (navigator.serviceWorker && navigator.serviceWorker.controller) {
         navigator.serviceWorker.controller.postMessage({
           type: "SHOW_DRINK_NOTIFICATION",
-          title: "\uD83E\uDD64 Protein Tracked!",
-          body: "Great job! You've logged your protein drink today.",
+          title: `\uD83E\uDD64 ${texts.title}`,
+          body: texts.statusDone,
         });
       }
-      showNotificationAlert("\u2705 Good Job. Keep Going!");
+      showNotificationAlert(`\u2705 ${texts.statusDone}`);
     }
   }
 
