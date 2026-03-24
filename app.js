@@ -24,6 +24,7 @@
     { name: "Sydney", timeZone: "Australia/Sydney" },
     { name: "Santo Domingo", timeZone: "America/Santo_Domingo" },
     { name: "Stockholm", timeZone: "Europe/Stockholm" },
+    { name: "Rome", timeZone: "Europe/Rome" },
   ];
 
   /* --- Confetti System --- */
@@ -816,8 +817,8 @@
     const sorted = [...history].sort((a, b) => (a < b ? 1 : -1));
     sorted.forEach(function(dateKey) {
       const d = parseDateKey(dateKey);
-      const dateStr = d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
-      const dayStr = d.toLocaleDateString('en-GB', { weekday: 'long' });
+      const dateStr = d.toLocaleDateString(currentLang, { day: '2-digit', month: 'short', year: 'numeric' });
+      const dayStr = d.toLocaleDateString(currentLang, { weekday: 'long' });
       const ts = drinkTimestamps.find(function(t) { return t.date === dateKey; });
       rows.push([dateStr, dayStr, ts ? ts.time : '—', 'Drank ✓']);
     });
@@ -857,7 +858,7 @@
     doc.setFontSize(8);
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(180, 180, 200);
-    doc.text('History exported on ' + new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' }), margin, 32);
+    doc.text('History exported on ' + new Date().toLocaleDateString(currentLang, { day: '2-digit', month: 'long', year: 'numeric' }), margin, 32);
 
     y = 50;
 
@@ -878,8 +879,8 @@
     sorted.forEach(function(dateKey, idx) {
       if (y > 278) { doc.addPage(); y = margin; }
       const d = parseDateKey(dateKey);
-      const dateStr = d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
-      const dayStr = d.toLocaleDateString('en-GB', { weekday: 'long' });
+      const dateStr = d.toLocaleDateString(currentLang, { day: '2-digit', month: 'short', year: 'numeric' });
+      const dayStr = d.toLocaleDateString(currentLang, { weekday: 'long' });
       const ts = drinkTimestamps.find(function(t) { return t.date === dateKey; });
 
       // Draw a dark row background for every row to keep PDF fully dark
